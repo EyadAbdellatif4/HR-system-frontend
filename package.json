@@ -1,0 +1,47 @@
+{
+  "name": "voucher-management-system-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "gcloud run deploy gift-voucher-dashboard --source . --region europe-west1 --platform managed --allow-unauthenticated --memory 256Mi --cpu 1 --max-instances 10 --timeout 60s --port 8080 --set-env-vars VITE_API_URL=https://gift-voucher-generator-1082379018873.europe-west1.run.app",
+    "deploy:prod": "gcloud builds submit --config=cloudbuild.yaml --substitutions=_VITE_API_URL=https://gift-voucher-generator-1082379018873.europe-west1.run.app",
+    "deploy:build": "docker build --build-arg VITE_API_URL=$VITE_API_URL -t gcr.io/$(gcloud config get-value project)/gift-voucher-dashboard . && docker push gcr.io/$(gcloud config get-value project)/gift-voucher-dashboard && gcloud run deploy gift-voucher-dashboard --image gcr.io/$(gcloud config get-value project)/gift-voucher-dashboard --region europe-west1 --platform managed --allow-unauthenticated --memory 256Mi --cpu 1 --max-instances 10 --timeout 60s --port 8080"
+  },
+  "dependencies": {
+    "@headlessui/react": "^1.7.18",
+    "@heroicons/react": "2.0.18",
+    "@material-tailwind/react": "2.1.4",
+    "@reduxjs/toolkit": "^2.11.2",
+    "@tanstack/react-query": "^5.90.10",
+    "apexcharts": "3.44.0",
+    "axios": "^1.12.2",
+    "country-state-city": "^3.2.1",
+    "lucide-react": "^0.263.1",
+    "pako": "^2.1.0",
+    "prop-types": "15.8.1",
+    "react": "18.2.0",
+    "react-apexcharts": "1.4.1",
+    "react-day-picker": "^9.12.0",
+    "react-dom": "18.2.0",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "6.17.0",
+    "react-select": "^5.10.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "@types/react": "18.2.31",
+    "@types/react-dom": "18.2.14",
+    "@vitejs/plugin-react": "4.1.0",
+    "autoprefixer": "10.4.16",
+    "postcss": "8.4.31",
+    "prettier": "3.0.3",
+    "prettier-plugin-tailwindcss": "0.5.6",
+    "tailwindcss": "3.3.4",
+    "typescript": "^5.9.3",
+    "vite": "4.5.0"
+  }
+}

@@ -1,0 +1,59 @@
+steps:
+  # Build the container image with VITE_API_URL build arg
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--build-arg'
+      - 'VITE_API_URL=${_VITE_API_URL}'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/gift-voucher-dashboard:${_IMAGE_TAG}'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/gift-voucher-dashboard:latest'
+      - '.'
+    timeout: '600s'
+
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/gift-voucher-dashboard:${_IMAGE_TAG}']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/gift-voucher-dashboard:latest']
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'gift-voucher-dashboard'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/gift-voucher-dashboard:${_IMAGE_TAG}'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '256Mi'
+      - '--cpu'
+      - '1'
+      - '--max-instances'
+      - '10'
+      - '--timeout'
+      - '60s'
+      - '--port'
+      - '8080'
+
+images:
+  - 'gcr.io/$PROJECT_ID/gift-voucher-dashboard:${_IMAGE_TAG}'
+  - 'gcr.io/$PROJECT_ID/gift-voucher-dashboard:latest'
+
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+timeout: '1200s'
+
+substitutions:
+  _REGION: europe-west1
+  _IMAGE_TAG: 'latest'
+  _VITE_API_URL: https://gift-voucher-generator-1082379018873.europe-west1.run.app
+
