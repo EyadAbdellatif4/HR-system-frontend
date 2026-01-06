@@ -7,9 +7,9 @@ export const useAppDispatch: () => AppDispatch = useDispatch;
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 // Re-export all RTK Query hooks for convenience
-export * from '@/features/users/api/usersApi';
-export * from '@/features/assets/api/assetsApi';
-export * from '@/features/asset-tracking/api/assetTrackingApi';
-export * from '@/features/dashboard/api/dashboardApi';
+export * from '@/features/admin/users/api/usersApi';
+export * from '@/features/admin/assets/api/assetsApi';
+export * from '@/features/admin/asset-tracking/api/assetTrackingApi';
+export * from '@/features/admin/dashboard/api/dashboardApi';
 export * from '@/features/auth/api/authApi';
 

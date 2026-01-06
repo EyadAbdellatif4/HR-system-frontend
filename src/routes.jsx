@@ -1,6 +1,5 @@
-
-import { adminRoutes } from "@/modules/admin/routes";
-import { authRoutes } from "@/modules/auth/routes";
+import { adminRoutes } from "@/features/admin/dashboard/routes";
+import { authRoutes } from "@/features/auth/routes";
 
 const routes = [
   {
@@ -15,4 +14,4 @@ const routes = [
 ];
 
 export default routes;
-export { adminRoutes };
+export { adminRoutes, authRoutes };

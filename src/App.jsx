@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { Dashboard, Auth } from "@/layouts";
-import { LoadingSpinner } from "@/shared/components";
+import { DashboardLayout } from "@/features/admin/dashboard/layouts/DashboardLayout";
+import { AuthLayout } from "@/features/auth/layouts/AuthLayout";
+import { LoadingSpinner } from "@/common/components";
 import { useAppSelector } from "@/store";
 
 function AppRoutes() {
@@ -16,8 +17,8 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/dashboard/*" element={<Dashboard />} />
-      <Route path="/auth/*" element={<Auth />} />
+      <Route path="/dashboard/*" element={<DashboardLayout />} />
+      <Route path="/auth/*" element={<AuthLayout />} />
       <Route 
         path="*" 
         element={

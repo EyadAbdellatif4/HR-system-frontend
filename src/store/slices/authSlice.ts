@@ -1,5 +1,4 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { authService } from '@/modules/auth/services';
 
 interface User {
   id: string;
@@ -20,12 +19,17 @@ const initialState: AuthState = {
   isAuthenticated: false,
 };
 
+// Helper to get stored user from localStorage
+const getStoredUser = (): User | null => {
+  const user = localStorage.getItem('user');
+  return user ? JSON.parse(user) : null;
+};
+
 // Async thunk to initialize auth from localStorage
 export const initializeAuthFromStorage = createAsyncThunk(
   'auth/initializeFromStorage',
   async () => {
-    const storedUser = authService.getStoredUser();
-    return storedUser;
+    return getStoredUser();
   }
 );
 
@@ -46,10 +50,13 @@ const authSlice = createSlice({
       state.loading = false;
     },
     logout: (state) => {
-      authService.logout();
+      // Clear localStorage
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
       state.user = null;
       state.isAuthenticated = false;
       state.loading = false;
+      // Redirect to sign-in (handled by component or middleware)
     },
   },
   extraReducers: (builder) => {

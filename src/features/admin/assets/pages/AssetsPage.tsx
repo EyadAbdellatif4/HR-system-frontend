@@ -1,37 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import { Package, ChevronLeft, ChevronRight, Plus, Trash2, Link2 } from 'lucide-react';
-import { useAssets, useAssetTracking } from '@/modules/admin/hooks';
-import { LoadingSpinner, CreateAssetModal, CreateAssetTrackingModal } from '@/shared/components';
-import { AssetDetailModal } from '@/shared/components/AssetDetailModal';
-import { assetService } from '@/modules/admin/services';
+import { LoadingSpinner, PaginationDropdown } from '@/common/components';
+import { CreateAssetModal } from '../components/CreateAssetModal';
+import { AssetDetailModal } from '../components/AssetDetailModal';
+import { CreateAssetTrackingModal } from '@/features/admin/asset-tracking/components/CreateAssetTrackingModal';
 import { getApiUrl } from '@/config/env';
-import { useSearch } from '@/contexts/SearchContext';
+import { useSearch } from '@/common/hooks/useSearch';
 import { useAppSelector, useAppDispatch } from '@/store';
 import { openModal, closeModal } from '@/store/slices/modalSlice';
+import { setSelectedAsset } from '@/store/slices/pageSlice';
+import {
+  useGetAssetsQuery,
+  useCreateAssetMutation,
+  useUpdateAssetMutation,
+  useDeleteAssetMutation,
+  useCreateAssetTrackingMutation,
+} from '@/store/hooks';
+import { assetsApi } from '../api/assetsApi';
+import type { Asset, AssetFilters, CreateAssetRequest, UpdateAssetRequest } from '@/types/api.types';
 
-export function Assets() {
+export function AssetsPage() {
   const dispatch = useAppDispatch();
-  const { 
-    assets, 
-    loading, 
-    error, 
-    success, 
-    pagination, 
-    filters, 
-    updateFilters, 
-    updatePage, 
-    updateAsset,
-    createAsset,
-    deleteAsset,
-    clearError, 
-    clearSuccess 
-  } = useAssets();
-
-  const { createAssetTracking } = useAssetTracking();
   const { searchQuery } = useSearch();
-  const [selectedRows, setSelectedRows] = useState(new Set());
-  const [imageErrors, setImageErrors] = useState({});
-  
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [filters, setFilters] = useState<AssetFilters>({
+    page: 1,
+    limit: 10,
+    sortBy: 'createdAt',
+    sortOrder: 'DESC',
+  });
+
+  // RTK Query hooks
+  const { data: assetsData, isLoading: loading } = useGetAssetsQuery(filters);
+  const [createAsset] = useCreateAssetMutation();
+  const [updateAsset] = useUpdateAssetMutation();
+  const [deleteAsset] = useDeleteAssetMutation();
+  const [createAssetTracking] = useCreateAssetTrackingMutation();
+
+  // Extract data
+  const assets = assetsData?.assets || assetsData?.data?.items || [];
+  const pagination = {
+    total: assetsData?.total || assetsData?.data?.meta?.total || 0,
+    page: assetsData?.page || assetsData?.data?.meta?.page || filters.page || 1,
+    limit: assetsData?.limit || assetsData?.data?.meta?.limit || filters.limit || 10,
+    totalPages: assetsData?.totalPages || assetsData?.data?.meta?.totalPages || 0,
+  };
+
   // Redux state
   const createAssetModal = useAppSelector((state) => state.modal.createAsset);
   const createAssetTrackingModal = useAppSelector((state) => state.modal.createAssetTracking);
@@ -41,18 +56,27 @@ export function Assets() {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchQuery !== filters.search) {
-        updateFilters({ search: searchQuery });
+        setFilters((prev) => ({ ...prev, search: searchQuery, page: 1 }));
       }
     }, 300);
 
     return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [searchQuery, filters.search]);
 
-  const handleRowClick = async (asset) => {
+  const updateFilters = (newFilters: Partial<AssetFilters>) => {
+    setFilters((prev) => ({ ...prev, ...newFilters }));
+  };
+
+  const updatePage = (page: number) => {
+    setFilters((prev) => ({ ...prev, page }));
+  };
+
+  const handleRowClick = async (asset: Asset) => {
     // Fetch full asset details
     try {
-      const response = await assetService.getAssetById(asset.id);
+      const response = await dispatch(
+        assetsApi.endpoints.getAssetById.initiate(asset.id)
+      ).unwrap();
       const assetData = response.asset || asset;
       dispatch(openModal({ modal: 'assetDetail', data: assetData }));
     } catch (err) {
@@ -62,24 +86,61 @@ export function Assets() {
     }
   };
 
-  const handleUpdate = async (assetId, updateData) => {
+  const handleUpdate = async (assetId: string, updateData: UpdateAssetRequest, files: File[] | null = null) => {
     try {
-      await updateAsset(assetId, updateData, null);
+      await updateAsset({ id: assetId, data: updateData, files: files || undefined }).unwrap();
       dispatch(closeModal('assetDetail'));
-    } catch (error) {
+      dispatch(setSelectedAsset(null));
+    } catch (error: any) {
       console.error('Error updating asset:', error);
+      const errorMessage = error?.data?.message || error?.message || 'Failed to update asset. Please try again.';
+      const formattedError = Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage;
+      
+      if (window.showToast) {
+        window.showToast(formattedError, 'error', 6000);
+      } else {
+        alert(formattedError);
+      }
       // Don't close modal on error so user can retry
     }
   };
 
-  const handleCreate = async (data, files) => {
-    await createAsset(data, files);
-    dispatch(closeModal('createAsset'));
+  const handleCreate = async (data: CreateAssetRequest, files?: File[]) => {
+    try {
+      await createAsset({ data, files }).unwrap();
+      dispatch(closeModal('createAsset'));
+      if (window.showToast) {
+        window.showToast('Asset created successfully', 'success');
+      }
+    } catch (error: any) {
+      const errorMessage = error?.data?.message || error?.message || 'Failed to create asset. Please try again.';
+      const formattedError = Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage;
+      
+      if (window.showToast) {
+        window.showToast(formattedError, 'error', 6000);
+      } else {
+        alert(formattedError);
+      }
+    }
   };
 
-  const handleAssignAsset = async (data) => {
-    await createAssetTracking(data);
-    dispatch(closeModal('createAssetTracking'));
+  const handleAssignAsset = async (data: any) => {
+    try {
+      await createAssetTracking(data).unwrap();
+      dispatch(closeModal('createAssetTracking'));
+      if (window.showToast) {
+        window.showToast('Asset assigned successfully', 'success');
+      }
+    } catch (error: any) {
+      const errorMessage = error?.data?.message || error?.message || 'Failed to assign asset. Please try again.';
+      const formattedError = Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage;
+      
+      if (window.showToast) {
+        window.showToast(formattedError, 'error', 6000);
+      } else {
+        alert(formattedError);
+      }
+    }
   };
 
   const handleDeleteSelected = async () => {
@@ -90,24 +151,37 @@ export function Assets() {
     }
 
     try {
-      const deletePromises = Array.from(selectedRows).map(assetId => deleteAsset(assetId));
+      const deletePromises = Array.from(selectedRows).map((assetId) =>
+        deleteAsset(assetId).unwrap()
+      );
       await Promise.all(deletePromises);
       setSelectedRows(new Set());
-    } catch (error) {
+      if (window.showToast) {
+        window.showToast('Assets deleted successfully', 'success');
+      }
+    } catch (error: any) {
       console.error('Error deleting assets:', error);
+      const errorMessage = error?.data?.message || error?.message || 'Failed to delete assets. Please try again.';
+      const formattedError = Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage;
+      
+      if (window.showToast) {
+        window.showToast(formattedError, 'error', 6000);
+      } else {
+        alert(formattedError);
+      }
     }
   };
 
-  const handleSelectAll = (e) => {
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedRows(new Set(assets.map(asset => asset.id)));
+      setSelectedRows(new Set(assets.map((asset) => asset.id)));
     } else {
       setSelectedRows(new Set());
     }
   };
 
-  const handleSelectRow = (assetId) => {
-    setSelectedRows(prev => {
+  const handleSelectRow = (assetId: string) => {
+    setSelectedRows((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(assetId)) {
         newSet.delete(assetId);
@@ -118,7 +192,7 @@ export function Assets() {
     });
   };
 
-  const getAssetImageUrl = (asset) => {
+  const getAssetImageUrl = (asset: Asset) => {
     const assetImage = asset?.attachments?.[0]?.path_URL;
     if (assetImage) {
       return `${getApiUrl()}/files/${assetImage}`;
@@ -126,11 +200,11 @@ export function Assets() {
     return null;
   };
 
-  const handleImageError = (assetId) => {
-    setImageErrors(prev => ({ ...prev, [assetId]: true }));
+  const handleImageError = (assetId: string) => {
+    setImageErrors((prev) => ({ ...prev, [assetId]: true }));
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status?: string) => {
     if (status === 'Active' || status === 'Selected') {
       return 'bg-green-100 text-green-800';
     }
@@ -176,19 +250,6 @@ export function Assets() {
           </button>
         </div>
       </div>
-
-      {success && (
-        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-sm text-green-800">{success}</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-800">{error}</p>
-        </div>
-      )}
-
 
       {/* Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -295,21 +356,19 @@ export function Assets() {
             {/* Pagination */}
             {pagination.total > 0 && (
               <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-4 border-t border-gray-200 bg-gray-50 gap-4">
-                <div className="flex items-center space-x-4">
-                  <span className="text-sm text-gray-600">Showing</span>
-                  <select
-                    value={pagination.limit}
-                    onChange={(e) => updateFilters({ limit: parseInt(e.target.value), page: 1 })}
-                    onClick={(e) => e.stopPropagation()}
-                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  >
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    <span className="text-sm text-gray-600 whitespace-nowrap">Showing</span>
+                    <PaginationDropdown
+                      value={pagination.limit}
+                      onChange={(e) => updateFilters({ limit: parseInt(e.target.value), page: 1 })}
+                    />
+                    <span className="text-sm text-gray-600 whitespace-nowrap hidden sm:inline">
+                      items per page
+                    </span>
+                  </div>
                   <span className="text-sm text-gray-600 whitespace-nowrap">
-                    Showing {pagination.total > 0 ? ((pagination.page - 1) * pagination.limit) + 1 : 0} to {Math.min(pagination.page * pagination.limit, pagination.total)} out of {pagination.total} records
+                    {pagination.total > 0 ? ((pagination.page - 1) * pagination.limit) + 1 : 0} - {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} records
                   </span>
                 </div>
 
@@ -328,7 +387,7 @@ export function Assets() {
                     
                     <div className="flex items-center space-x-1">
                       {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                        let pageNum;
+                        let pageNum: number;
                         if (pagination.totalPages <= 5) {
                           pageNum = i + 1;
                         } else if (pagination.page <= 3) {
@@ -403,4 +462,5 @@ export function Assets() {
   );
 }
 
-export default Assets;
+export default AssetsPage;
+

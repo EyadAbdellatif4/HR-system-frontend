@@ -1,23 +1,39 @@
 import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
 import { Users, Package, CheckCircle, User, Link2 } from "lucide-react";
-import { CountCard, LoadingSpinner, AssetTree, AssetDetailModal, AssetTrackingDetailModal } from "@/shared/components";
-import { useDashboardCounts, useAssetTracking, useAssets } from "@/modules/admin/hooks";
-import { assetService, assetTrackingService } from "@/modules/admin/services";
+import { LoadingSpinner } from "@/common/components";
+import { CountCard } from "../components/CountCard";
+// Note: These components are not exported in the public API, so we import directly
+import { AssetTree } from "@/features/admin/assets/components/AssetTree";
+import { AssetDetailModal } from "@/features/admin/assets/components/AssetDetailModal";
+import { AssetTrackingDetailModal } from "@/features/admin/asset-tracking/components/AssetTrackingDetailModal";
 import { getApiUrl } from "@/config/env";
-import { useSearch } from "@/contexts/SearchContext";
+import { useSearch } from "@/common/hooks/useSearch";
 import { useAppSelector, useAppDispatch } from "@/store";
 import { openModal, closeModal } from "@/store/slices/modalSlice";
 import { setImageError, setSelectedAsset, setSelectedTracking } from "@/store/slices/pageSlice";
+import {
+  useGetDashboardCountsQuery,
+  useGetAssetTrackingsQuery,
+  useGetAssetsQuery,
+  useUpdateAssetMutation,
+  useUpdateAssetTrackingMutation,
+} from "@/store/hooks";
+import { assetTrackingApi } from "@/features/admin/asset-tracking/api/assetTrackingApi";
+import { assetsApi } from "@/features/admin/assets/api/assetsApi";
+import type { Asset, AssetTracking, User as UserType } from "@/types/api.types";
 
-export function Home() {
+export function DashboardPage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
-  const { loading, counts, users, assets, activeTrackingCount } = useDashboardCounts();
-  const { assetTrackings, loading: trackingLoading, updateAssetTracking } = useAssetTracking();
-  const { updateAsset } = useAssets();
+  
+  // RTK Query hooks
+  const { data: dashboardData, isLoading: dashboardLoading } = useGetDashboardCountsQuery();
+  const { data: trackingData, isLoading: trackingLoading } = useGetAssetTrackingsQuery({});
+  const { data: assetsData, isLoading: assetsLoading } = useGetAssetsQuery({});
+  const [updateAsset] = useUpdateAssetMutation();
+  const [updateAssetTracking] = useUpdateAssetTrackingMutation();
+  
   const { searchQuery } = useSearch();
   
   // Redux state
@@ -28,8 +44,17 @@ export function Home() {
   const assetDetailState = useAppSelector((state) => state.modal.assetDetail);
   const assetTrackingDetailState = useAppSelector((state) => state.modal.assetTrackingDetail);
 
+  // Extract data from responses
+  const counts = dashboardData?.counts || { users: 0, assets: 0, activeTrackingCount: 0 };
+  const users = dashboardData?.users || [];
+  const assets = dashboardData?.assets || [];
+  const activeTrackingCount = counts.activeTrackingCount;
+  const assetTrackings = trackingData?.assetTrackings || trackingData?.data?.items || [];
+  const allAssets = assetsData?.assets || assetsData?.data?.items || [];
+
   // Helper function to get user profile image URL
-  const getUserImageUrl = (user) => {
+  const getUserImageUrl = (user: UserType | undefined) => {
+    if (!user) return null;
     const profileImage = user?.attachments?.[0]?.path_URL;
     if (profileImage) {
       return `${getApiUrl()}/files/${profileImage}`;
@@ -38,7 +63,8 @@ export function Home() {
   };
 
   // Helper function to get asset image URL
-  const getAssetImageUrl = (asset) => {
+  const getAssetImageUrl = (asset: Asset | undefined) => {
+    if (!asset) return null;
     const assetImage = asset?.attachments?.[0]?.path_URL;
     if (assetImage) {
       return `${getApiUrl()}/files/${assetImage}`;
@@ -46,11 +72,11 @@ export function Home() {
     return null;
   };
 
-  const handleImageError = (id) => {
+  const handleImageError = (id: string) => {
     dispatch(setImageError({ id, hasError: true }));
   };
 
-  const handleUserRowClick = (user) => {
+  const handleUserRowClick = (user: UserType) => {
     dispatch(openModal({ modal: 'assetTree', data: user }));
   };
 
@@ -58,10 +84,13 @@ export function Home() {
     dispatch(closeModal('assetTree'));
   };
 
-  const handleTrackingRowClick = async (tracking) => {
+  const handleTrackingRowClick = async (tracking: AssetTracking) => {
     // When clicking on tracking row, show the tracking details
     try {
-      const response = await assetTrackingService.getAssetTrackingById(tracking.id);
+      // Use RTK Query to fetch tracking details
+      const response = await dispatch(
+        assetTrackingApi.endpoints.getAssetTrackingById.initiate(tracking.id)
+      ).unwrap();
       const trackingData = response.assetTracking || tracking;
       dispatch(setSelectedTracking(trackingData));
       dispatch(openModal({ modal: 'assetTrackingDetail', data: trackingData }));
@@ -73,10 +102,13 @@ export function Home() {
     }
   };
 
-  const handleAssetRowClick = async (asset) => {
+  const handleAssetRowClick = async (asset: Asset) => {
     // Fetch full asset details
     try {
-      const response = await assetService.getAssetById(asset.id);
+      // Use RTK Query to fetch asset details
+      const response = await dispatch(
+        assetsApi.endpoints.getAssetById.initiate(asset.id)
+      ).unwrap();
       const assetData = response.asset || asset;
       dispatch(setSelectedAsset(assetData));
       dispatch(openModal({ modal: 'assetDetail', data: assetData }));
@@ -88,16 +120,21 @@ export function Home() {
     }
   };
 
-  const handleAssetUpdate = async (assetId, updateData) => {
+  const handleAssetUpdate = async (assetId: string, updateData: any, files: File[] | null = null) => {
     try {
-      await updateAsset(assetId, updateData, null);
-      // Invalidate queries to refresh data
-      await queryClient.invalidateQueries({ queryKey: ['assets'] });
-      await queryClient.invalidateQueries({ queryKey: ['asset-tracking'] });
+      await updateAsset({ id: assetId, data: updateData, files: files || undefined }).unwrap();
       dispatch(closeModal('assetDetail'));
       dispatch(setSelectedAsset(null));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating asset:', error);
+      const errorMessage = error?.data?.message || error?.message || 'Failed to update asset. Please try again.';
+      const formattedError = Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage;
+      
+      if (window.showToast) {
+        window.showToast(formattedError, 'error', 6000);
+      } else {
+        alert(formattedError);
+      }
       // Don't close modal on error so user can retry
     }
   };
@@ -107,16 +144,13 @@ export function Home() {
     dispatch(setSelectedAsset(null));
   };
 
-  const handleTrackingUpdate = async (trackingId, updateData) => {
+  const handleTrackingUpdate = async (trackingId: string, updateData: any) => {
     try {
-      await updateAssetTracking(trackingId, updateData);
-      // Invalidate queries to refresh data
-      await queryClient.invalidateQueries({ queryKey: ['asset-tracking'] });
-      await queryClient.invalidateQueries({ queryKey: ['assets'] });
+      await updateAssetTracking({ id: trackingId, data: updateData }).unwrap();
       dispatch(closeModal('assetTrackingDetail'));
       dispatch(setSelectedTracking(null));
-    } catch (error) {
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to update asset tracking. Please try again.';
+    } catch (error: any) {
+      const errorMessage = error?.data?.message || error?.message || 'Failed to update asset tracking. Please try again.';
       const formattedError = Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage;
       
       if (window.showToast) {
@@ -134,7 +168,7 @@ export function Home() {
   };
 
   // Filter functions
-  const filterTracking = (tracking) => {
+  const filterTracking = (tracking: AssetTracking) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     const userName = tracking.user?.name || '';
@@ -147,7 +181,7 @@ export function Home() {
     );
   };
 
-  const filterUser = (user) => {
+  const filterUser = (user: UserType) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     const name = user.name || '';
@@ -162,7 +196,7 @@ export function Home() {
     );
   };
 
-  const filterAsset = (asset) => {
+  const filterAsset = (asset: Asset) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     const name = asset.label || asset.model || asset.type || '';
@@ -189,10 +223,10 @@ export function Home() {
   }, [users, searchQuery]);
 
   const filteredAssets = useMemo(() => {
-    return (assets || []).filter(filterAsset);
-  }, [assets, searchQuery]);
+    return (allAssets || []).filter(filterAsset);
+  }, [allAssets, searchQuery]);
 
-  const getStatusColor = (isActive) => {
+  const getStatusColor = (isActive: boolean | string | undefined) => {
     if (isActive === true || isActive === 'true') {
       return 'bg-green-100 text-green-800';
     }
@@ -235,7 +269,7 @@ export function Home() {
             icon={icon}
             count={count}
             color={color}
-            loading={loading}
+            loading={dashboardLoading}
             onClick={onClick}
           />
         ))}
@@ -363,7 +397,7 @@ export function Home() {
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">Employees</h2>
           </div>
 
-          {loading ? (
+          {dashboardLoading ? (
             <div className="flex justify-center items-center py-8">
               <LoadingSpinner />
             </div>
@@ -454,7 +488,7 @@ export function Home() {
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">Assets</h2>
           </div>
 
-          {loading ? (
+          {assetsLoading ? (
             <div className="flex justify-center items-center py-8">
               <LoadingSpinner />
             </div>
@@ -578,4 +612,5 @@ export function Home() {
   );
 }
 
-export default Home;
+export default DashboardPage;
+
