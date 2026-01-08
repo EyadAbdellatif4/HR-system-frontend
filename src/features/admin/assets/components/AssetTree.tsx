@@ -373,9 +373,7 @@ export function AssetTree({ user, isOpen, onClose }) {
                     <p className="text-gray-400 text-sm mt-2">This user doesn't have any assigned assets yet.</p>
                   </div>
                 ) : (
-                  <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 md:gap-8 px-4 ${
-                    assetTrackings.length <= 3 ? 'justify-items-center' : ''
-                  }`}>
+                  <div className="flex flex-wrap justify-center gap-4 sm:gap-6 md:gap-6 lg:gap-8 px-4">
                     {assetTrackings.map((tracking, index) => {
                       const asset = tracking.asset;
                       const assetImageUrl = getAssetImageUrl(asset);
@@ -389,7 +387,7 @@ export function AssetTree({ user, isOpen, onClose }) {
                             animation: `fadeInScale 0.5s ease-out ${index * 0.1 + 0.3}s both`
                           }}
                         >
-                          <div className="group relative flex flex-col items-center w-full">
+                          <div className="group relative flex flex-col items-center">
                             <div className="relative">
                               {/* Glow effect */}
                               <div className="absolute inset-0 bg-blue-300 rounded-full blur-md opacity-0 group-hover:opacity-25 transition-opacity duration-300"></div>
@@ -399,7 +397,7 @@ export function AssetTree({ user, isOpen, onClose }) {
                                 ref={(el) => {
                                   if (el) assetNodeRefs.current[tracking.id] = el;
                                 }}
-                                className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full bg-white shadow-lg border-3 border-gray-200 group-hover:border-blue-400 transition-all duration-300 flex items-center justify-center p-1 transform group-hover:scale-110 group-hover:shadow-xl cursor-pointer mx-auto"
+                                className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-full bg-white shadow-lg border-3 border-gray-200 group-hover:border-blue-400 transition-all duration-300 flex items-center justify-center p-1 transform group-hover:scale-110 group-hover:shadow-xl cursor-pointer"
                                 onClick={() => handleAssetClick(asset)}
                               >
                                 {assetImageUrl ? (
@@ -417,19 +415,19 @@ export function AssetTree({ user, isOpen, onClose }) {
                                     <div 
                                       className="w-full h-full rounded-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center hidden"
                                     >
-                                      <Package className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-blue-500" />
+                                      <Package className="w-6 h-6 sm:w-8 sm:h-8 md:w-8 md:h-8 lg:w-10 lg:h-10 text-blue-500" />
                                     </div>
                                   </>
                                 ) : (
                                   <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
-                                    <Package className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-blue-500" />
+                                    <Package className="w-6 h-6 sm:w-8 sm:h-8 md:w-8 md:h-8 lg:w-10 lg:h-10 text-blue-500" />
                                   </div>
                                 )}
                               </div>
                             </div>
                             
                             {/* Asset Name */}
-                            <div className="mt-2 text-center w-full px-1">
+                            <div className="mt-2 text-center max-w-[110px]">
                               <p className="text-xs sm:text-sm font-medium text-gray-700 break-words leading-tight group-hover:text-blue-600 transition-colors">
                                 {assetName}
                               </p>
