@@ -25,11 +25,11 @@ export function SignInPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-2">
-            <img
+            {/* <img
               src="/Emails Vertical.svg"
               alt="Email System"
               className="h-56 w-auto"
-            />
+            /> */}
           </div>
           <Typography variant="h2" className="font-bold mb-4">Sign In</Typography>
           <Typography variant="paragraph" className="text-lg font-normal text-text-secondary">Enter your email and password to Sign In.</Typography>

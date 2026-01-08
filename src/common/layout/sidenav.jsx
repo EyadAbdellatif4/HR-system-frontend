@@ -27,11 +27,11 @@ export function Sidenav({ brandImg, brandName, routes }) {
         {/* Logo Section */}
         <div className="relative flex items-center justify-center min-h-[120px] border-b border-gray-200 px-2">
           <div className="flex flex-col items-center justify-center w-full">
-            <img
+            {/* <img
               src="/Emails.svg"
               alt="Email System"
               className="h-28 sm:h-32 w-auto max-w-[250px]"
-            />
+            /> */}
           </div>
           {/* Mobile Close Button */}
           <button

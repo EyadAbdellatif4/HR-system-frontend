@@ -1,44 +1,65 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Save, Loader2, Calendar, Link2, User, Package } from 'lucide-react';
-import { userService, assetService, assetTrackingService } from '@/features/admin/users/services';
+import { X, Save, Loader2, Calendar, Link2, User, Package, Trash2 } from 'lucide-react';
+import { userService, assetService } from '@/features/admin/users/services';
 import { SimpleDatePicker } from '@/common/components/SimpleDatePicker';
 import { ImageDropdown } from '@/common/components/ImageDropdown';
-import { SimpleDropdown } from '@/common/components/SimpleDropdown';
 import { getApiUrl } from '@/config/env';
+import type { AssetTracking, User as UserType, Asset as AssetType } from '@/types/api.types';
+
+interface AssetTrackingDetailModalProps {
+  tracking: AssetTracking | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdate: (id: string, data: any) => Promise<void>;
+}
+
+interface FormData {
+  user_id: string;
+  asset_id: string;
+  assigned_at: string;
+  removed_at: string;
+  is_active: boolean;
+}
+
+declare global {
+  interface Window {
+    showToast?: (message: string, type?: string, duration?: number) => void;
+  }
+}
 
 /**
  * AssetTrackingDetailModal Component
  * Displays and allows editing of asset tracking details
- * 
- * @param {Object} props
- * @param {Object} props.tracking - The asset tracking object
- * @param {boolean} props.isOpen - Whether the modal is open
- * @param {Function} props.onClose - Function to close the modal
- * @param {Function} props.onUpdate - Function to handle asset tracking update
  */
-export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }) {
-  const [formData, setFormData] = useState({});
+export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }: AssetTrackingDetailModalProps) {
+  const [formData, setFormData] = useState<FormData>({
+    user_id: '',
+    asset_id: '',
+    assigned_at: '',
+    removed_at: '',
+    is_active: true,
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [users, setUsers] = useState([]);
-  const [assets, setAssets] = useState([]);
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [assets, setAssets] = useState<AssetType[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingAssets, setLoadingAssets] = useState(false);
   const [showAssignedDatePicker, setShowAssignedDatePicker] = useState(false);
   const [showRemovedDatePicker, setShowRemovedDatePicker] = useState(false);
-  const assignedDateRef = useRef(null);
-  const removedDateRef = useRef(null);
-  const assignedCalendarRef = useRef(null);
-  const removedCalendarRef = useRef(null);
+  const assignedDateRef = useRef<HTMLDivElement>(null);
+  const removedDateRef = useRef<HTMLDivElement>(null);
+  const assignedCalendarRef = useRef<HTMLDivElement>(null);
+  const removedCalendarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen && tracking) {
       setFormData({
         user_id: tracking.user_id || tracking.user?.id || '',
         asset_id: tracking.asset_id || tracking.asset?.id || '',
-        assigned_at: tracking.assigned_at ? new Date(tracking.assigned_at).toISOString().split('T')[0] : '',
-        removed_at: tracking.removed_at ? new Date(tracking.removed_at).toISOString().split('T')[0] : '',
+        assigned_at: tracking.assigned_at ? new Date(tracking.assigned_at).toISOString().split('T')[0] || '' : '',
+        removed_at: tracking.removed_at ? new Date(tracking.removed_at).toISOString().split('T')[0] || '' : '',
         is_active: tracking.is_active !== undefined ? tracking.is_active : true,
       });
       setIsEditing(false);
@@ -49,8 +70,8 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
 
   // Close date pickers when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      const target = event.target;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
       const isClickInAssignedInput = assignedDateRef.current?.contains(target);
       const isClickInAssignedCalendar = assignedCalendarRef.current?.contains(target);
       const isClickInRemovedInput = removedDateRef.current?.contains(target);
@@ -70,6 +91,7 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
+    return undefined;
   }, [showAssignedDatePicker, showRemovedDatePicker]);
 
   const fetchUsers = async () => {
@@ -100,11 +122,11 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
     }
   };
 
-  const handleDateChange = (name, date) => {
+  const handleDateChange = (name: keyof FormData, date: string) => {
     setFormData(prev => ({ ...prev, [name]: date }));
   };
 
-  const formatDateForDisplay = (dateString) => {
+  const formatDateForDisplay = (dateString: string | null | undefined): string => {
     if (!dateString) return '';
     const date = new Date(dateString);
     const year = date.getFullYear();
@@ -132,9 +154,10 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
         removed_at: formData.removed_at ? new Date(formData.removed_at).toISOString() : undefined,
         // Note: is_active is not included as it's not part of the UpdateAssetTrackingDto
       };
+      if (!tracking) return;
       await onUpdate(tracking.id, data);
       setIsEditing(false);
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to update asset tracking. Please try again.';
       const formattedError = Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage;
       
@@ -148,7 +171,7 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
     }
   };
 
-  const getUserImageUrl = (user) => {
+  const getUserImageUrl = (user: UserType): string | null => {
     const profileImage = user?.attachments?.[0]?.path_URL;
     if (profileImage) {
       return `${getApiUrl()}/files/${profileImage}`;
@@ -156,7 +179,7 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
     return null;
   };
 
-  const getAssetImageUrl = (asset) => {
+  const getAssetImageUrl = (asset: AssetType): string | null => {
     const assetImage = asset?.attachments?.[0]?.path_URL;
     if (assetImage) {
       return `${getApiUrl()}/files/${assetImage}`;
@@ -164,19 +187,19 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
     return null;
   };
 
-  const getUserDisplayText = (user) => {
+  const getUserDisplayText = (user: UserType): string => {
     return user.name || user.username || user.email || 'Unknown User';
   };
 
-  const getUserSubText = (user) => {
+  const getUserSubText = (user: UserType): string => {
     return user.user_number || user.email || user.username || '';
   };
 
-  const getAssetDisplayText = (asset) => {
+  const getAssetDisplayText = (asset: AssetType): string => {
     return asset.label || asset.model || asset.type || 'Unknown Asset';
   };
 
-  const getAssetSubText = (asset) => {
+  const getAssetSubText = (asset: AssetType): string => {
     return asset.serial_number || asset.model || asset.type || '';
   };
 
@@ -184,8 +207,8 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
 
   const user = tracking.user;
   const asset = tracking.asset;
-  const userImageUrl = getUserImageUrl(user);
-  const assetImageUrl = getAssetImageUrl(asset);
+  const userImageUrl = user ? getUserImageUrl(user) : null;
+  const assetImageUrl = asset ? getAssetImageUrl(asset) : null;
 
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
@@ -217,12 +240,13 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
               <>
                 <button
                   onClick={() => {
+                    if (!tracking) return;
                     setIsEditing(false);
                     setFormData({
                       user_id: tracking.user_id || tracking.user?.id || '',
                       asset_id: tracking.asset_id || tracking.asset?.id || '',
-                      assigned_at: tracking.assigned_at ? new Date(tracking.assigned_at).toISOString().split('T')[0] : '',
-                      removed_at: tracking.removed_at ? new Date(tracking.removed_at).toISOString().split('T')[0] : '',
+                      assigned_at: tracking.assigned_at ? (new Date(tracking.assigned_at).toISOString().split('T')[0] || '') : '',
+                      removed_at: tracking.removed_at ? (new Date(tracking.removed_at).toISOString().split('T')[0] || '') : '',
                       is_active: tracking.is_active !== undefined ? tracking.is_active : true,
                     });
                   }}
@@ -283,9 +307,9 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
                   </div>
                 ) : (
                   <ImageDropdown
-                    options={users}
+                    options={users as any}
                     value={formData.user_id}
-                    onChange={(userId) => setFormData(prev => ({ ...prev, user_id: userId }))}
+                    onChange={(userId: string) => setFormData(prev => ({ ...prev, user_id: userId }))}
                     placeholder="Select User"
                     loading={loadingUsers}
                     type="user"
@@ -328,9 +352,9 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
                   </div>
                 ) : (
                   <ImageDropdown
-                    options={assets}
+                    options={assets as any}
                     value={formData.asset_id}
-                    onChange={(assetId) => setFormData(prev => ({ ...prev, asset_id: assetId }))}
+                    onChange={(assetId: string) => setFormData(prev => ({ ...prev, asset_id: assetId }))}
                     placeholder="Select Asset"
                     loading={loadingAssets}
                     type="asset"
@@ -387,12 +411,13 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
                     >
                       <SimpleDatePicker
                         value={formData.assigned_at}
-                        onChange={(date) => {
+                        onChange={(date: string) => {
                           handleDateChange('assigned_at', date);
                           setShowAssignedDatePicker(false);
                         }}
                         show={showAssignedDatePicker}
                         onClose={() => setShowAssignedDatePicker(false)}
+                        minDate={undefined}
                       />
                     </div>,
                     document.body
@@ -407,9 +432,38 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
 
             {/* Removed Date Picker */}
             <div className="relative" ref={removedDateRef}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Removed Date <span className="text-gray-500 text-xs">(Optional)</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Removed Date <span className="text-gray-500 text-xs">(Optional)</span>
+                </label>
+                {isEditing && !formData.removed_at && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const today = new Date().toISOString().split('T')[0];
+                      handleDateChange('removed_at', today || '');
+                    }}
+                    className="flex items-center space-x-1 px-3 py-1 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
+                    title="Remove assignment from this user"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Remove Assignment</span>
+                  </button>
+                )}
+                {isEditing && formData.removed_at && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleDateChange('removed_at', '');
+                    }}
+                    className="flex items-center space-x-1 px-3 py-1 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+                    title="Clear removed date"
+                  >
+                    <X className="w-4 h-4" />
+                    <span>Clear</span>
+                  </button>
+                )}
+              </div>
               {isEditing ? (
                 <>
                   <div className="relative">
@@ -434,12 +488,13 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
                     >
                       <SimpleDatePicker
                         value={formData.removed_at}
-                        onChange={(date) => {
+                        onChange={(date: string) => {
                           handleDateChange('removed_at', date);
                           setShowRemovedDatePicker(false);
                         }}
                         show={showRemovedDatePicker}
                         onClose={() => setShowRemovedDatePicker(false)}
+                        minDate={undefined}
                       />
                     </div>,
                     document.body

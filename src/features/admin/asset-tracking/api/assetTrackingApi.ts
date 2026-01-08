@@ -48,6 +48,7 @@ export const assetTrackingApi = baseApi.injectEndpoints({
       query: ({ userId, filters = {} }) => {
         const params = new URLSearchParams();
         params.append('user_id', userId);
+        params.append('activeOnly', 'true'); // Only get active assignments (not removed) for asset tree
         if (filters.search) params.append('search', filters.search);
         if (filters.asset_id) params.append('asset_id', filters.asset_id);
         if (filters.is_active !== undefined && filters.is_active !== '') {

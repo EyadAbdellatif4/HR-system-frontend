@@ -334,7 +334,8 @@ export const assetTrackingService = {
     },
     getAssetTrackingsByUserId: async (userId, params = {}) => {
         try {
-            const response = await api.get('/asset-tracking', { params: { ...params, user_id: userId } });
+            // Set activeOnly=true to only get active assignments (not removed) for asset tree
+            const response = await api.get('/asset-tracking', { params: { ...params, user_id: userId, activeOnly: true } });
             return response.data;
         } catch (error) {
             throw error.response?.data?.message || error.message || `An error occurred while getting asset trackings for user ${userId}`;
