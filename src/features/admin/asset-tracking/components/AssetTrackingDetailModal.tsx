@@ -151,7 +151,9 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
         user_id: formData.user_id,
         asset_id: formData.asset_id,
         assigned_at: formData.assigned_at ? new Date(formData.assigned_at).toISOString() : undefined,
-        removed_at: formData.removed_at ? new Date(formData.removed_at).toISOString() : undefined,
+        removed_at: formData.removed_at && formData.removed_at.trim() !== '' 
+          ? new Date(formData.removed_at).toISOString() 
+          : null, // Explicitly set to null to clear the field
         // Note: is_active is not included as it's not part of the UpdateAssetTrackingDto
       };
       if (!tracking) return;
@@ -221,21 +223,21 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
       {/* Modal Content */}
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col transform transition-all duration-300">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-indigo-50">
-          <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center border-2 border-white shadow-md">
-              <Link2 className="w-8 h-8 text-purple-600" />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-indigo-50 gap-4">
+          <div className="flex items-center space-x-3 sm:space-x-4">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center border-2 border-white shadow-md flex-shrink-0">
+              <Link2 className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
             </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
                 Asset Tracking Details
               </h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 Assignment Information
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2 sm:space-x-2">
             {isEditing ? (
               <>
                 <button
@@ -250,14 +252,14 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
                       is_active: tracking.is_active !== undefined ? tracking.is_active : true,
                     });
                   }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors touch-manipulation"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                 >
                   {isSaving ? (
                     <>
@@ -276,15 +278,16 @@ export function AssetTrackingDetailModal({ tracking, isOpen, onClose, onUpdate }
               <>
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                  className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors touch-manipulation"
                 >
                   Edit
                 </button>
                 <button
                   onClick={onClose}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-all duration-200"
+                  className="w-full sm:w-auto sm:p-2 px-4 py-2 sm:px-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-all duration-200 flex items-center justify-center touch-manipulation"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <span className="sm:hidden ml-2">Close</span>
                 </button>
               </>
             )}

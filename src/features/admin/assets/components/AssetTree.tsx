@@ -64,6 +64,24 @@ export function AssetTree({ user, isOpen, onClose }) {
     }
   }, [assetTrackings]);
 
+  // Handle window resize to redraw lines
+  useEffect(() => {
+    const handleResize = () => {
+      setLinesReady(false);
+      // Debounce the redraw
+      clearTimeout(window.resizeTimer);
+      window.resizeTimer = setTimeout(() => {
+        setLinesReady(true);
+      }, 200);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(window.resizeTimer);
+    };
+  }, []);
+
   const fetchAssetTrackings = async () => {
     try {
       setLoading(true);
@@ -227,9 +245,9 @@ export function AssetTree({ user, isOpen, onClose }) {
         {/* Modal Content */}
         <div className="relative bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col transform transition-all duration-300 scale-100">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
                 Assigned Assets
               </h2>
               <p className="text-sm text-gray-600 mt-1">
@@ -238,7 +256,7 @@ export function AssetTree({ user, isOpen, onClose }) {
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-all duration-200 hover:rotate-90"
+              className="self-end sm:self-auto p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-all duration-200 hover:rotate-90"
             >
               <X className="w-6 h-6" />
             </button>
@@ -355,7 +373,9 @@ export function AssetTree({ user, isOpen, onClose }) {
                     <p className="text-gray-400 text-sm mt-2">This user doesn't have any assigned assets yet.</p>
                   </div>
                 ) : (
-                  <div className="flex flex-wrap justify-center gap-6 sm:gap-8 px-4">
+                  <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 md:gap-8 px-4 ${
+                    assetTrackings.length <= 3 ? 'justify-items-center' : ''
+                  }`}>
                     {assetTrackings.map((tracking, index) => {
                       const asset = tracking.asset;
                       const assetImageUrl = getAssetImageUrl(asset);
@@ -369,7 +389,7 @@ export function AssetTree({ user, isOpen, onClose }) {
                             animation: `fadeInScale 0.5s ease-out ${index * 0.1 + 0.3}s both`
                           }}
                         >
-                          <div className="group relative flex flex-col items-center">
+                          <div className="group relative flex flex-col items-center w-full">
                             <div className="relative">
                               {/* Glow effect */}
                               <div className="absolute inset-0 bg-blue-300 rounded-full blur-md opacity-0 group-hover:opacity-25 transition-opacity duration-300"></div>
@@ -379,7 +399,7 @@ export function AssetTree({ user, isOpen, onClose }) {
                                 ref={(el) => {
                                   if (el) assetNodeRefs.current[tracking.id] = el;
                                 }}
-                                className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white shadow-lg border-3 border-gray-200 group-hover:border-blue-400 transition-all duration-300 flex items-center justify-center p-1 transform group-hover:scale-110 group-hover:shadow-xl cursor-pointer"
+                                className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full bg-white shadow-lg border-3 border-gray-200 group-hover:border-blue-400 transition-all duration-300 flex items-center justify-center p-1 transform group-hover:scale-110 group-hover:shadow-xl cursor-pointer mx-auto"
                                 onClick={() => handleAssetClick(asset)}
                               >
                                 {assetImageUrl ? (
@@ -397,19 +417,19 @@ export function AssetTree({ user, isOpen, onClose }) {
                                     <div 
                                       className="w-full h-full rounded-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center hidden"
                                     >
-                                      <Package className="w-8 h-8 sm:w-10 sm:h-10 text-blue-500" />
+                                      <Package className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-blue-500" />
                                     </div>
                                   </>
                                 ) : (
                                   <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
-                                    <Package className="w-8 h-8 sm:w-10 sm:h-10 text-blue-500" />
+                                    <Package className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-blue-500" />
                                   </div>
                                 )}
                               </div>
                             </div>
                             
                             {/* Asset Name */}
-                            <div className="mt-2 text-center max-w-[110px]">
+                            <div className="mt-2 text-center w-full px-1">
                               <p className="text-xs sm:text-sm font-medium text-gray-700 break-words leading-tight group-hover:text-blue-600 transition-colors">
                                 {assetName}
                               </p>

@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Link2, ChevronLeft, ChevronRight, Plus, Trash2, User, Package } from 'lucide-react';
+import { Search, Link2, ChevronLeft, ChevronRight, Plus, Trash2, User, Package, Pencil } from 'lucide-react';
 import { useAssetTracking } from '../hooks/useAssetTracking';
 import { LoadingSpinner } from '@/common/components';
 import { CreateAssetTrackingModal } from '../components/CreateAssetTrackingModal';
+import { AssetTrackingDetailModal } from '../components/AssetTrackingDetailModal';
 import { assetTrackingService, userService, assetService } from '@/features/admin/users/services';
 import { getApiUrl } from '@/config/env';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { openModal, closeModal } from '@/store/slices/modalSlice';
 
 export function AssetTrackingPage() {
+  const dispatch = useAppDispatch();
   const { 
     assetTrackings, 
     loading, 
@@ -22,10 +26,36 @@ export function AssetTrackingPage() {
     clearSuccess 
   } = useAssetTracking();
 
+  const assetTrackingDetailModal = useAppSelector((state) => state.modal.assetTrackingDetail);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState({});
+
+  const handleRowClick = (tracking) => {
+    dispatch(openModal({ modal: 'assetTrackingDetail', data: tracking }));
+  };
+
+  const handleUpdate = async (trackingId, updateData) => {
+    try {
+      await assetTrackingService.updateAssetTracking(trackingId, updateData);
+      dispatch(closeModal('assetTrackingDetail'));
+      if (window.showToast) {
+        window.showToast('Asset tracking updated successfully', 'success');
+      }
+    } catch (error) {
+      console.error('Error updating asset tracking:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to update asset tracking. Please try again.';
+      const formattedError = Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage;
+      
+      if (window.showToast) {
+        window.showToast(formattedError, 'error', 6000);
+      } else {
+        alert(formattedError);
+      }
+    }
+  };
 
   // Sync search query with filters
   useEffect(() => {
@@ -42,6 +72,23 @@ export function AssetTrackingPage() {
   const handleCreate = async (data) => {
     await createAssetTracking(data);
     setIsCreateModalOpen(false);
+  };
+
+  const handleDelete = async (tracking) => {
+    if (!window.confirm(`Are you sure you want to delete this asset tracking record?`)) {
+      return;
+    }
+
+    try {
+      await deleteAssetTracking(tracking.id);
+      setSelectedRows((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(tracking.id);
+        return newSet;
+      });
+    } catch (error) {
+      console.error('Error deleting asset tracking:', error);
+    }
   };
 
   const handleDeleteSelected = async () => {
@@ -109,16 +156,16 @@ export function AssetTrackingPage() {
 
   return (
     <div className="flex flex-col">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Asset Tracking</h1>
           <p className="text-sm text-gray-600 mt-1">Manage asset assignments to users</p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-2 w-full sm:w-auto">
           {selectedRows.size > 0 && (
             <button
               onClick={handleDeleteSelected}
-              className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              className="flex items-center justify-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
               <Trash2 className="w-5 h-5" />
               <span>Delete ({selectedRows.size})</span>
@@ -126,7 +173,7 @@ export function AssetTrackingPage() {
           )}
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-5 h-5" />
             <span>Assign Asset</span>
@@ -174,7 +221,8 @@ export function AssetTrackingPage() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
@@ -201,6 +249,9 @@ export function AssetTrackingPage() {
                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Status
                     </th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -220,7 +271,7 @@ export function AssetTrackingPage() {
                         key={tracking.id}
                         className={`hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50' : ''}`}
                       >
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                           <input
                             type="checkbox"
                             checked={isSelected}
@@ -228,7 +279,10 @@ export function AssetTrackingPage() {
                             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                           />
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 cursor-pointer" onClick={() => {
+                          // Open tracking detail modal - would need to import useAppDispatch and openModal
+                          // For now, just log or handle differently
+                        }}>
                           <div className="flex items-center space-x-3">
                             {hasUserImage ? (
                               <img
@@ -248,7 +302,7 @@ export function AssetTrackingPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 cursor-pointer">
                           <div className="flex items-center space-x-3">
                             {hasAssetImage ? (
                               <img
@@ -268,22 +322,143 @@ export function AssetTrackingPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
+                        <td className="py-3 px-4 text-sm text-gray-600 cursor-pointer">
                           {tracking.assigned_at ? new Date(tracking.assigned_at).toLocaleDateString() : 'N/A'}
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
+                        <td className="py-3 px-4 text-sm text-gray-600 cursor-pointer">
                           {tracking.removed_at ? new Date(tracking.removed_at).toLocaleDateString() : 'N/A'}
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 cursor-pointer">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(tracking.is_active)}`}>
                             {tracking.is_active ? 'Active' : 'Inactive'}
                           </span>
+                        </td>
+                        <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleRowClick(tracking)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(tracking)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3 p-4">
+              {assetTrackings.map((tracking) => {
+                const user = tracking.user;
+                const asset = tracking.asset;
+                const userImageUrl = getUserImageUrl(user);
+                const assetImageUrl = getAssetImageUrl(asset);
+                const hasUserImage = userImageUrl && !imageErrors[`user-${tracking.id}`];
+                const hasAssetImage = assetImageUrl && !imageErrors[`asset-${tracking.id}`];
+                const userName = user?.name || 'N/A';
+                const assetName = asset?.label || asset?.model || asset?.type || 'N/A';
+                const isSelected = selectedRows.has(tracking.id);
+
+                return (
+                  <div
+                    key={tracking.id}
+                    className={`bg-white border-2 rounded-lg p-4 ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'} active:bg-gray-50 transition-colors`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleSelectRow(tracking.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 flex-shrink-0 mt-1"
+                        />
+                        {hasUserImage ? (
+                          <img
+                            src={userImageUrl}
+                            alt={userName}
+                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 flex-shrink-0"
+                            onError={() => handleImageError(`user-${tracking.id}`)}
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                            <User className="w-6 h-6 text-blue-600" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{userName}</p>
+                          <p className="text-xs text-gray-500 truncate">{user?.user_number || user?.email || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                        <button
+                          onClick={() => handleRowClick(tracking)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors touch-manipulation"
+                          title="Edit"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(tracking)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors touch-manipulation"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3 mb-3 pb-3 border-b border-gray-100">
+                      {hasAssetImage ? (
+                        <img
+                          src={assetImageUrl}
+                          alt={assetName}
+                          className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                          onError={() => handleImageError(`asset-${tracking.id}`)}
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                          <Package className="w-5 h-5 text-green-600" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{assetName}</p>
+                        <p className="text-xs text-gray-500 truncate">{asset?.serial_number || 'N/A'}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Assigned Date</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {tracking.assigned_at ? new Date(tracking.assigned_at).toLocaleDateString() : 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Removed Date</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {tracking.removed_at ? new Date(tracking.removed_at).toLocaleDateString() : 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(tracking.is_active)}`}>
+                        {tracking.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Pagination */}
@@ -376,6 +551,16 @@ export function AssetTrackingPage() {
         onClose={() => setIsCreateModalOpen(false)}
         onCreate={handleCreate}
       />
+
+      {/* Asset Tracking Detail Modal */}
+      {assetTrackingDetailModal.item && (
+        <AssetTrackingDetailModal
+          tracking={assetTrackingDetailModal.item}
+          isOpen={assetTrackingDetailModal.isOpen}
+          onClose={() => dispatch(closeModal('assetTrackingDetail'))}
+          onUpdate={handleUpdate}
+        />
+      )}
     </div>
   );
 }

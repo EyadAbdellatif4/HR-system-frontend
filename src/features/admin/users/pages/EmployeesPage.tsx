@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { User, ChevronLeft, ChevronRight, Plus, Trash2, Pencil } from 'lucide-react';
 import { LoadingSpinner, PaginationDropdown } from '@/common/components';
 import { UserDetailModal } from '../components/UserDetailModal';
 import { CreateUserModal } from '../components/CreateUserModal';
@@ -127,6 +127,34 @@ export function EmployeesPage() {
     }
   };
 
+  const handleDelete = async (user: UserType) => {
+    if (!window.confirm(`Are you sure you want to delete ${user.name || user.username || 'this user'}?`)) {
+      return;
+    }
+
+    try {
+      await deleteUser(user.id).unwrap();
+      setSelectedRows((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(user.id);
+        return newSet;
+      });
+      if (window.showToast) {
+        window.showToast('User deleted successfully', 'success');
+      }
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      const errorMessage = error?.data?.message || error?.message || 'Failed to delete user. Please try again.';
+      const formattedError = Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage;
+      
+      if (window.showToast) {
+        window.showToast(formattedError, 'error', 6000);
+      } else {
+        alert(formattedError);
+      }
+    }
+  };
+
   const handleDeleteSelected = async () => {
     if (selectedRows.size === 0) return;
     
@@ -197,16 +225,16 @@ export function EmployeesPage() {
 
   return (
     <div className="flex flex-col">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Employees</h1>
           <p className="text-sm text-gray-600 mt-1">Manage and track company employees</p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-2 w-full sm:w-auto">
           {selectedRows.size > 0 && (
             <button
               onClick={handleDeleteSelected}
-              className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              className="flex items-center justify-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
               <Trash2 className="w-5 h-5" />
               <span>Delete ({selectedRows.size})</span>
@@ -214,7 +242,7 @@ export function EmployeesPage() {
           )}
           <button
             onClick={() => dispatch(openModal({ modal: 'createUser' }))}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-5 h-5" />
             <span>Add Employee</span>
@@ -236,7 +264,8 @@ export function EmployeesPage() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
@@ -263,6 +292,9 @@ export function EmployeesPage() {
                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Status
                     </th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -277,8 +309,7 @@ export function EmployeesPage() {
                     return (
                       <tr
                         key={user.id}
-                        className={`hover:bg-gray-50 transition-colors cursor-pointer ${isSelected ? 'bg-blue-50' : ''}`}
-                        onClick={() => handleRowClick(user)}
+                        className={`hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50' : ''}`}
                       >
                         <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                           <input
@@ -288,7 +319,10 @@ export function EmployeesPage() {
                             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                           />
                         </td>
-                        <td className="py-3 px-4">
+                        <td 
+                          className="py-3 px-4 cursor-pointer"
+                          onClick={() => handleRowClick(user)}
+                        >
                           <div className="flex items-center space-x-3">
                             {hasImage ? (
                               <img
@@ -305,28 +339,144 @@ export function EmployeesPage() {
                             <span className="text-sm font-medium text-gray-900">{userName}</span>
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
+                        <td 
+                          className="py-3 px-4 text-sm text-gray-600 cursor-pointer"
+                          onClick={() => handleRowClick(user)}
+                        >
                           {user.title || 'N/A'}
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
+                        <td 
+                          className="py-3 px-4 text-sm text-gray-600 cursor-pointer"
+                          onClick={() => handleRowClick(user)}
+                        >
                           {user.user_number || 'N/A'}
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
+                        <td 
+                          className="py-3 px-4 text-sm text-gray-600 cursor-pointer"
+                          onClick={() => handleRowClick(user)}
+                        >
                           {departmentName}
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
+                        <td 
+                          className="py-3 px-4 text-sm text-gray-600 cursor-pointer"
+                          onClick={() => handleRowClick(user)}
+                        >
                           {user.email || user.username || 'N/A'}
                         </td>
-                        <td className="py-3 px-4">
+                        <td 
+                          className="py-3 px-4 cursor-pointer"
+                          onClick={() => handleRowClick(user)}
+                        >
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(isActive)}`}>
                             {isActive ? 'Active' : 'Inactive'}
                           </span>
+                        </td>
+                        <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleRowClick(user)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(user)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3 p-4">
+              {users.map((user) => {
+                const userImageUrl = getUserImageUrl(user);
+                const hasImage = userImageUrl && !imageErrors[user.id];
+                const userName = user.name || user.username || 'Unnamed User';
+                const isSelected = selectedRows.has(user.id);
+                const departmentName = user.departments?.[0]?.name || 'N/A';
+                const isActive = user.is_active !== false;
+
+                return (
+                  <div
+                    key={user.id}
+                    className={`bg-white border-2 rounded-lg p-4 ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'} active:bg-gray-50 transition-colors`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleSelectRow(user.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 flex-shrink-0 mt-1"
+                        />
+                        {hasImage ? (
+                          <img
+                            src={userImageUrl}
+                            alt={userName}
+                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 flex-shrink-0"
+                            onError={() => handleImageError(user.id)}
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                            <User className="w-6 h-6 text-blue-600" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{userName}</p>
+                          <p className="text-xs text-gray-500 truncate">{user.user_number || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                        <button
+                          onClick={() => handleRowClick(user)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors touch-manipulation"
+                          title="Edit"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(user)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors touch-manipulation"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Title</p>
+                        <p className="text-sm font-medium text-gray-900">{user.title || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Department</p>
+                        <p className="text-sm font-medium text-gray-900">{departmentName}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Email</p>
+                        <p className="text-sm font-medium text-gray-900 truncate">{user.email || user.username || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Status</p>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(isActive)}`}>
+                          {isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Pagination */}

@@ -282,15 +282,15 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
       
       {/* Modal Content */}
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col transform transition-all duration-300 mx-4 sm:mx-0">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-            <div className="flex items-center space-x-3 sm:space-x-4 w-full sm:w-auto">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 gap-4">
+          <div className="flex items-center space-x-3 sm:space-x-4">
             {hasImage ? (
-              <div className="relative">
+              <div className="relative flex-shrink-0">
                 <img
                   src={displayImage}
                   alt={user.name || 'User'}
-                  className="w-16 h-16 rounded-lg object-cover border-2 border-white shadow-md"
+                  className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover border-2 border-white shadow-md"
                   onError={() => setImageError(true)}
                 />
                 {isEditing && imagePreview && (
@@ -304,39 +304,22 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
                 )}
               </div>
             ) : (
-              <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center border-2 border-white shadow-md">
-                <User className="w-8 h-8 text-blue-600" />
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center border-2 border-white shadow-md flex-shrink-0">
+                <User className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
             )}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
                 {currentUser.name || 'User Details'}
               </h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 mt-1 truncate">
                 {currentUser.username || 'N/A'} • {currentUser.user_number || 'N/A'}
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-2 flex-wrap gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2 sm:space-x-2">
             {isEditing ? (
               <>
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed order-1"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      <span>Save</span>
-                    </>
-                  )}
-                </button>
                 <button
                   onClick={() => {
                     setIsEditing(false);
@@ -370,26 +353,46 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
                     setShowContractDatePicker(false);
                     setShowExitDatePicker(false);
                   }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors order-2"
+                  className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors touch-manipulation"
                 >
                   Cancel
                 </button>
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Save</span>
+                    </>
+                  )}
+                </button>
               </>
             ) : (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors order-1"
-              >
-                Edit
-              </button>
+              <>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors touch-manipulation"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={onClose}
+                  className="w-full sm:w-auto sm:p-2 px-4 py-2 sm:px-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-all duration-200 flex items-center justify-center touch-manipulation"
+                  aria-label="Close modal"
+                >
+                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <span className="sm:hidden ml-2">Close</span>
+                </button>
+              </>
             )}
-            <button
-              onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-all duration-200 hover:rotate-90 order-last"
-              aria-label="Close modal"
-            >
-              <X className="w-6 h-6" />
-            </button>
           </div>
         </div>
 

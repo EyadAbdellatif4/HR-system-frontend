@@ -291,101 +291,189 @@ export function DashboardPage() {
             <p>No asset tracking records found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                    Asset
-                  </th>
-                  <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                    Assigned Date
-                  </th>
-                  <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                    Removed Date
-                  </th>
-                  <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredTrackings.map((tracking) => {
-                  const user = tracking.user;
-                  const asset = tracking.asset;
-                  const userImageUrl = getUserImageUrl(user);
-                  const assetImageUrl = getAssetImageUrl(asset);
-                  const hasUserImage = userImageUrl && !imageErrors[`user-${tracking.id}`];
-                  const hasAssetImage = assetImageUrl && !imageErrors[`asset-${tracking.id}`];
-                  const userName = user?.name || 'N/A';
-                  const assetName = asset?.label || asset?.model || asset?.type || 'N/A';
+          <>
+            {/* Desktop Table View - Hidden on mobile */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                      User
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                      Asset
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                      Assigned Date
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                      Removed Date
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredTrackings.map((tracking) => {
+                    const user = tracking.user;
+                    const asset = tracking.asset;
+                    const userImageUrl = getUserImageUrl(user);
+                    const assetImageUrl = getAssetImageUrl(asset);
+                    const hasUserImage = userImageUrl && !imageErrors[`user-${tracking.id}`];
+                    const hasAssetImage = assetImageUrl && !imageErrors[`asset-${tracking.id}`];
+                    const userName = user?.name || 'N/A';
+                    const assetName = asset?.label || asset?.model || asset?.type || 'N/A';
 
-                  return (
-                    <tr
-                      key={tracking.id}
-                      className="hover:bg-gray-50 transition-colors cursor-pointer"
-                      onClick={() => handleTrackingRowClick(tracking)}
-                    >
-                      <td className="py-3 px-4">
-                        <div className="flex items-center space-x-3">
-                          {hasUserImage ? (
-                            <img
-                              src={userImageUrl}
-                              alt={userName}
-                              className="w-8 h-8 rounded-full object-cover"
-                              onError={() => handleImageError(`user-${tracking.id}`)}
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                              <User className="w-4 h-4 text-blue-600" />
+                    return (
+                      <tr
+                        key={tracking.id}
+                        className="hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={() => handleTrackingRowClick(tracking)}
+                      >
+                        <td className="py-3 px-4">
+                          <div className="flex items-center space-x-3">
+                            {hasUserImage ? (
+                              <img
+                                src={userImageUrl}
+                                alt={userName}
+                                className="w-8 h-8 rounded-full object-cover"
+                                onError={() => handleImageError(`user-${tracking.id}`)}
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                <User className="w-4 h-4 text-blue-600" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{userName}</p>
+                              <p className="text-xs text-gray-500">{user?.user_number || user?.email || 'N/A'}</p>
                             </div>
-                          )}
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{userName}</p>
-                            <p className="text-xs text-gray-500">{user?.user_number || user?.email || 'N/A'}</p>
                           </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center space-x-3">
-                          {hasAssetImage ? (
-                            <img
-                              src={assetImageUrl}
-                              alt={assetName}
-                              className="w-8 h-8 rounded-full object-cover"
-                              onError={() => handleImageError(`asset-${tracking.id}`)}
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                              <Package className="w-4 h-4 text-green-600" />
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center space-x-3">
+                            {hasAssetImage ? (
+                              <img
+                                src={assetImageUrl}
+                                alt={assetName}
+                                className="w-8 h-8 rounded-full object-cover"
+                                onError={() => handleImageError(`asset-${tracking.id}`)}
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                                <Package className="w-4 h-4 text-green-600" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{assetName}</p>
+                              <p className="text-xs text-gray-500">{asset?.serial_number || 'N/A'}</p>
                             </div>
-                          )}
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{assetName}</p>
-                            <p className="text-xs text-gray-500">{asset?.serial_number || 'N/A'}</p>
                           </div>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-600">
+                          {tracking.assigned_at ? new Date(tracking.assigned_at).toLocaleDateString() : 'N/A'}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-600">
+                          {tracking.removed_at ? new Date(tracking.removed_at).toLocaleDateString() : 'N/A'}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(tracking.is_active)}`}>
+                            {tracking.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View - Visible only on mobile */}
+            <div className="md:hidden space-y-3">
+              {filteredTrackings.map((tracking) => {
+                const user = tracking.user;
+                const asset = tracking.asset;
+                const userImageUrl = getUserImageUrl(user);
+                const assetImageUrl = getAssetImageUrl(asset);
+                const hasUserImage = userImageUrl && !imageErrors[`user-${tracking.id}`];
+                const hasAssetImage = assetImageUrl && !imageErrors[`asset-${tracking.id}`];
+                const userName = user?.name || 'N/A';
+                const assetName = asset?.label || asset?.model || asset?.type || 'N/A';
+
+                return (
+                  <div
+                    key={tracking.id}
+                    className="bg-white border border-gray-200 rounded-lg p-4 active:bg-gray-50 transition-colors cursor-pointer touch-manipulation"
+                    onClick={() => handleTrackingRowClick(tracking)}
+                  >
+                    {/* User Section */}
+                    <div className="flex items-center space-x-3 mb-3 pb-3 border-b border-gray-100">
+                      {hasUserImage ? (
+                        <img
+                          src={userImageUrl}
+                          alt={userName}
+                          className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                          onError={() => handleImageError(`user-${tracking.id}`)}
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                          <User className="w-5 h-5 text-blue-600" />
                         </div>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-600">
-                        {tracking.assigned_at ? new Date(tracking.assigned_at).toLocaleDateString() : 'N/A'}
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-600">
-                        {tracking.removed_at ? new Date(tracking.removed_at).toLocaleDateString() : 'N/A'}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(tracking.is_active)}`}>
-                          {tracking.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{userName}</p>
+                        <p className="text-xs text-gray-500 truncate">{user?.user_number || user?.email || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    {/* Asset Section */}
+                    <div className="flex items-center space-x-3 mb-3 pb-3 border-b border-gray-100">
+                      {hasAssetImage ? (
+                        <img
+                          src={assetImageUrl}
+                          alt={assetName}
+                          className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                          onError={() => handleImageError(`asset-${tracking.id}`)}
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                          <Package className="w-5 h-5 text-green-600" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{assetName}</p>
+                        <p className="text-xs text-gray-500 truncate">{asset?.serial_number || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    {/* Dates and Status */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Assigned Date</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {tracking.assigned_at ? new Date(tracking.assigned_at).toLocaleDateString() : 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Removed Date</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {tracking.removed_at ? new Date(tracking.removed_at).toLocaleDateString() : 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Status Badge */}
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(tracking.is_active)}`}>
+                        {tracking.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 
@@ -407,78 +495,132 @@ export function DashboardPage() {
               <p>No employees found</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                      Employee Name
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                      Department
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredUsers.map((user) => {
-                    const departmentName = user.departments?.[0]?.name || "N/A";
-                    const isActive = user.is_active !== false;
-                    const userImageUrl = getUserImageUrl(user);
-                    const hasImage = userImageUrl && !imageErrors[user.id];
-                    const userName = user.name || "N/A";
-                    
-                    return (
-                      <tr 
-                        key={user.id} 
-                        className="hover:bg-gray-50 transition-colors cursor-pointer"
-                        onClick={() => handleUserRowClick(user)}
-                      >
-                        <td className="py-3 px-4">
-                          <div className="flex items-center space-x-3">
-                            {hasImage ? (
-                              <img
-                                src={userImageUrl}
-                                alt={userName}
-                                className="w-8 h-8 rounded-full object-cover"
-                                onError={() => handleImageError(user.id)}
-                              />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                <User className="w-4 h-4 text-blue-600" />
-                              </div>
-                            )}
-                            <span className="text-sm text-gray-900">{userName}</span>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                        Employee Name
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                        ID
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                        Department
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredUsers.map((user) => {
+                      const departmentName = user.departments?.[0]?.name || "N/A";
+                      const isActive = user.is_active !== false;
+                      const userImageUrl = getUserImageUrl(user);
+                      const hasImage = userImageUrl && !imageErrors[user.id];
+                      const userName = user.name || "N/A";
+                      
+                      return (
+                        <tr 
+                          key={user.id} 
+                          className="hover:bg-gray-50 transition-colors cursor-pointer"
+                          onClick={() => handleUserRowClick(user)}
+                        >
+                          <td className="py-3 px-4">
+                            <div className="flex items-center space-x-3">
+                              {hasImage ? (
+                                <img
+                                  src={userImageUrl}
+                                  alt={userName}
+                                  className="w-8 h-8 rounded-full object-cover"
+                                  onError={() => handleImageError(user.id)}
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                  <User className="w-4 h-4 text-blue-600" />
+                                </div>
+                              )}
+                              <span className="text-sm text-gray-900">{userName}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-600">
+                            {user.user_number || "N/A"}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-600">
+                            {departmentName}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                isActive
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {isActive ? "Active" : "Inactive"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {filteredUsers.map((user) => {
+                  const departmentName = user.departments?.[0]?.name || "N/A";
+                  const isActive = user.is_active !== false;
+                  const userImageUrl = getUserImageUrl(user);
+                  const hasImage = userImageUrl && !imageErrors[user.id];
+                  const userName = user.name || "N/A";
+                  
+                  return (
+                    <div
+                      key={user.id}
+                      className="bg-white border border-gray-200 rounded-lg p-4 active:bg-gray-50 transition-colors cursor-pointer touch-manipulation"
+                      onClick={() => handleUserRowClick(user)}
+                    >
+                      <div className="flex items-center space-x-3 mb-3">
+                        {hasImage ? (
+                          <img
+                            src={userImageUrl}
+                            alt={userName}
+                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                            onError={() => handleImageError(user.id)}
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                            <User className="w-6 h-6 text-blue-600" />
                           </div>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
-                          {user.user_number || "N/A"}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
-                          {departmentName}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              isActive
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {isActive ? "Active" : "Inactive"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{userName}</p>
+                          <p className="text-xs text-gray-500 truncate">{user.user_number || "N/A"}</p>
+                        </div>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
+                            isActive
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {isActive ? "Active" : "Inactive"}
+                        </span>
+                      </div>
+                      <div className="pt-3 border-t border-gray-100">
+                        <p className="text-xs text-gray-500 mb-1">Department</p>
+                        <p className="text-sm font-medium text-gray-900">{departmentName}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
 
@@ -498,84 +640,144 @@ export function DashboardPage() {
               <p>No assets found</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                      Asset Name
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                      Model
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                      Serial Number
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredAssets.map((asset) => {
-                    const assetImageUrl = getAssetImageUrl(asset);
-                    const hasImage = assetImageUrl && !imageErrors[asset.id];
-                    const assetName = asset.label || asset.model || asset.type || 'Unnamed Asset';
-                    
-                    return (
-                      <tr
-                        key={asset.id}
-                        className="hover:bg-gray-50 transition-colors cursor-pointer"
-                        onClick={() => handleAssetRowClick(asset)}
-                      >
-                        <td className="py-3 px-4">
-                          <div className="flex items-center space-x-3">
-                            {hasImage ? (
-                              <img
-                                src={assetImageUrl}
-                                alt={assetName}
-                                className="w-8 h-8 rounded-full object-cover"
-                                onError={() => handleImageError(asset.id)}
-                              />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                                <Package className="w-4 h-4 text-green-600" />
-                              </div>
-                            )}
-                            <span className="text-sm font-medium text-gray-900">{assetName}</span>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                        Asset Name
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                        Type
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                        Model
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                        Serial Number
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredAssets.map((asset) => {
+                      const assetImageUrl = getAssetImageUrl(asset);
+                      const hasImage = assetImageUrl && !imageErrors[asset.id];
+                      const assetName = asset.label || asset.model || asset.type || 'Unnamed Asset';
+                      
+                      return (
+                        <tr
+                          key={asset.id}
+                          className="hover:bg-gray-50 transition-colors cursor-pointer"
+                          onClick={() => handleAssetRowClick(asset)}
+                        >
+                          <td className="py-3 px-4">
+                            <div className="flex items-center space-x-3">
+                              {hasImage ? (
+                                <img
+                                  src={assetImageUrl}
+                                  alt={assetName}
+                                  className="w-8 h-8 rounded-full object-cover"
+                                  onError={() => handleImageError(asset.id)}
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                                  <Package className="w-4 h-4 text-green-600" />
+                                </div>
+                              )}
+                              <span className="text-sm font-medium text-gray-900">{assetName}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-600">
+                            {asset.type || 'N/A'}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-600">
+                            {asset.model || 'N/A'}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-600">
+                            {asset.serial_number || 'N/A'}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              asset.status === 'Active' || asset.status === 'Selected'
+                                ? 'bg-green-100 text-green-800'
+                                : asset.status === 'In Process' || asset.status === 'Pending'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : asset.status === 'Rejected' || asset.status === 'Inactive'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {asset.status || 'N/A'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {filteredAssets.map((asset) => {
+                  const assetImageUrl = getAssetImageUrl(asset);
+                  const hasImage = assetImageUrl && !imageErrors[asset.id];
+                  const assetName = asset.label || asset.model || asset.type || 'Unnamed Asset';
+                  
+                  return (
+                    <div
+                      key={asset.id}
+                      className="bg-white border border-gray-200 rounded-lg p-4 active:bg-gray-50 transition-colors cursor-pointer touch-manipulation"
+                      onClick={() => handleAssetRowClick(asset)}
+                    >
+                      <div className="flex items-center space-x-3 mb-3">
+                        {hasImage ? (
+                          <img
+                            src={assetImageUrl}
+                            alt={assetName}
+                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                            onError={() => handleImageError(asset.id)}
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                            <Package className="w-6 h-6 text-green-600" />
                           </div>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
-                          {asset.type || 'N/A'}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
-                          {asset.model || 'N/A'}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
-                          {asset.serial_number || 'N/A'}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            asset.status === 'Active' || asset.status === 'Selected'
-                              ? 'bg-green-100 text-green-800'
-                              : asset.status === 'In Process' || asset.status === 'Pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : asset.status === 'Rejected' || asset.status === 'Inactive'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {asset.status || 'N/A'}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{assetName}</p>
+                          <p className="text-xs text-gray-500 truncate">{asset.serial_number || 'N/A'}</p>
+                        </div>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
+                          asset.status === 'Active' || asset.status === 'Selected'
+                            ? 'bg-green-100 text-green-800'
+                            : asset.status === 'In Process' || asset.status === 'Pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : asset.status === 'Rejected' || asset.status === 'Inactive'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {asset.status || 'N/A'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Type</p>
+                          <p className="text-sm font-medium text-gray-900">{asset.type || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Model</p>
+                          <p className="text-sm font-medium text-gray-900">{asset.model || 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
       </div>
