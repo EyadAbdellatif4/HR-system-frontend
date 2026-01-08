@@ -244,8 +244,7 @@ export function AssetTree({ user, isOpen, onClose }) {
       
         {/* Modal Content */}
         <div className="relative bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col transform transition-all duration-300 scale-100">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 gap-4">
+          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
                 Assigned Assets
@@ -256,7 +255,7 @@ export function AssetTree({ user, isOpen, onClose }) {
             </div>
             <button
               onClick={onClose}
-              className="self-end sm:self-auto p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-all duration-200 hover:rotate-90"
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-all duration-200 hover:rotate-90"
             >
               <X className="w-6 h-6" />
             </button>
