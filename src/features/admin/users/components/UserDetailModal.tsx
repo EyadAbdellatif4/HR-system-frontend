@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { X, User, Save, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { X, User, Save, Loader2, Calendar, Plus, Trash2 } from 'lucide-react';
 import { getApiUrl } from '@/config/env';
 import { FileUpload } from '@/common/components/FileUpload';
+import { SimpleDatePicker } from '@/common/components/SimpleDatePicker';
+import { SimpleDropdown } from '@/common/components/SimpleDropdown';
+import { departmentService } from '../services';
+import type { Department } from '@/types/api.types';
 
 /**
  * UserDetailModal Component
@@ -14,24 +19,67 @@ import { FileUpload } from '@/common/components/FileUpload';
  * @param {Function} props.onUpdate - Function to handle user update
  */
 export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
+  const [currentUser, setCurrentUser] = useState(user); // Track current displayed user
   const [formData, setFormData] = useState({});
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [imagePreview, setImagePreview] = useState(null);
+  
+  // Departments state
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
+  const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>([]);
+  
+  // Date picker states
+  const [showJoinDatePicker, setShowJoinDatePicker] = useState(false);
+  const [showContractDatePicker, setShowContractDatePicker] = useState(false);
+  const [showExitDatePicker, setShowExitDatePicker] = useState(false);
+  const joinDateRef = useRef(null);
+  const contractDateRef = useRef(null);
+  const exitDateRef = useRef(null);
+  const joinCalendarRef = useRef(null);
+  const contractCalendarRef = useRef(null);
+  const exitCalendarRef = useRef(null);
+
+  // Fetch departments on mount
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        setDepartmentsLoading(true);
+        const deptData = await departmentService.getAllDepartments({ limit: 100, is_active: true });
+        setDepartments(Array.isArray(deptData) ? deptData : []);
+      } catch (error) {
+        console.error('Error fetching departments:', error);
+        setDepartments([]);
+      } finally {
+        setDepartmentsLoading(false);
+      }
+    };
+    fetchDepartments();
+  }, []);
 
   useEffect(() => {
     if (user) {
+      setCurrentUser(user); // Update current user when prop changes
+      
+      // Initialize personal_phone as array
+      const phoneArray = Array.isArray(user.personal_phone) 
+        ? user.personal_phone 
+        : (user.personal_phone ? [user.personal_phone] : []);
+      
+      // Initialize department IDs
+      const deptIds = user.departments?.map(dept => dept.id) || [];
+      
       setFormData({
         name: user.name || '',
         username: user.username || '',
-        email: user.email || '',
         user_number: user.user_number || '',
         title: user.title || '',
         address: user.address || '',
         work_location: user.work_location || '',
-        personal_phone: user.personal_phone || '',
+        personal_phone: phoneArray,
         social_insurance: user.social_insurance || false,
         medical_insurance: user.medical_insurance || false,
         join_date: user.join_date || '',
@@ -39,10 +87,41 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
         exit_date: user.exit_date || '',
         is_active: user.is_active !== false,
       });
+      setSelectedDepartmentIds(deptIds);
       setIsEditing(false);
       setImageError(false);
     }
   }, [user]);
+
+  // Close date pickers when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const target = event.target;
+      const isClickInJoinInput = joinDateRef.current?.contains(target);
+      const isClickInJoinCalendar = joinCalendarRef.current?.contains(target);
+      const isClickInContractInput = contractDateRef.current?.contains(target);
+      const isClickInContractCalendar = contractCalendarRef.current?.contains(target);
+      const isClickInExitInput = exitDateRef.current?.contains(target);
+      const isClickInExitCalendar = exitCalendarRef.current?.contains(target);
+
+      if (showJoinDatePicker && !isClickInJoinInput && !isClickInJoinCalendar) {
+        setShowJoinDatePicker(false);
+      }
+      if (showContractDatePicker && !isClickInContractInput && !isClickInContractCalendar) {
+        setShowContractDatePicker(false);
+      }
+      if (showExitDatePicker && !isClickInExitInput && !isClickInExitCalendar) {
+        setShowExitDatePicker(false);
+      }
+    };
+
+    if (showJoinDatePicker || showContractDatePicker || showExitDatePicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showJoinDatePicker, showContractDatePicker, showExitDatePicker]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -69,22 +148,85 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
     setImagePreview(null);
   };
 
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleDateChange = (name, date) => {
+    setFormData(prev => ({ ...prev, [name]: date }));
+  };
+
+  const handleAddPhone = () => {
+    setFormData(prev => ({
+      ...prev,
+      personal_phone: [...(prev.personal_phone || []), '']
+    }));
+  };
+
+  const handleRemovePhone = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      personal_phone: prev.personal_phone.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handlePhoneChange = (index: number, value: string) => {
+    setFormData(prev => {
+      const phones = [...(prev.personal_phone || [])];
+      phones[index] = value;
+      return { ...prev, personal_phone: phones };
+    });
+  };
+
+  const handleAddDepartment = (departmentId: string) => {
+    if (departmentId && !selectedDepartmentIds.includes(departmentId)) {
+      setSelectedDepartmentIds(prev => [...prev, departmentId]);
+    }
+  };
+
+  const handleRemoveDepartment = (departmentId: string) => {
+    setSelectedDepartmentIds(prev => prev.filter(id => id !== departmentId));
+  };
+
   const handleSave = async () => {
     try {
       setIsSaving(true);
       // Filter out fields that backend doesn't accept in update DTO
-      const { username, email, is_active, ...updateData } = formData;
+      // Note: username is now included in update (backend DTO updated)
+      const { is_active, personal_phone, ...updateData } = formData;
       
-      // Handle personal_phone as array if it's a string
-      if (updateData.personal_phone && typeof updateData.personal_phone === 'string') {
-        updateData.personal_phone = updateData.personal_phone
-          .split(',')
-          .map(phone => phone.trim())
-          .filter(phone => phone);
-      }
+      // Handle personal_phone as array - filter out empty strings
+      const phoneArray = Array.isArray(personal_phone) 
+        ? personal_phone.filter(phone => phone && phone.trim())
+        : [];
+      
+      // Add department_ids to updateData
+      const finalUpdateData = {
+        ...updateData,
+        personal_phone: phoneArray.length > 0 ? phoneArray : undefined,
+        department_ids: selectedDepartmentIds.length > 0 ? selectedDepartmentIds : undefined,
+      };
       
       // Pass files to onUpdate if any are selected
-      await onUpdate(user.id, updateData, selectedFiles.length > 0 ? selectedFiles : null);
+      const result = await onUpdate(user.id, finalUpdateData, selectedFiles.length > 0 ? selectedFiles : null);
+      
+      // Update currentUser with the response data or formData to reflect changes in UI
+      if (result?.user) {
+        setCurrentUser(result.user);
+      } else {
+        // Fallback: update currentUser with formData
+        setCurrentUser(prev => ({
+          ...prev,
+          ...formData,
+          username: formData.username || prev.username,
+        }));
+      }
+      
       setIsEditing(false);
       setSelectedFiles([]);
       setImagePreview(null);
@@ -103,7 +245,7 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
   };
 
   const getUserImageUrl = () => {
-    const userImage = user?.attachments?.[0]?.path_URL;
+    const userImage = currentUser?.attachments?.[0]?.path_URL;
     if (userImage) {
       return `${getApiUrl()}/files/${userImage}`;
     }
@@ -114,7 +256,21 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
   const hasImage = (imagePreview || userImageUrl) && !imageError;
   const displayImage = imagePreview || userImageUrl;
 
-  if (!isOpen || !user) return null;
+  // Work location options
+  const workLocationOptions = [
+    { value: '', label: 'Select Location' },
+    { value: 'remote', label: 'Remote' },
+    { value: 'office', label: 'Office' },
+    { value: 'hybrid', label: 'Hybrid' },
+  ];
+
+  // Status options
+  const statusOptions = [
+    { value: 'true', label: 'Active' },
+    { value: 'false', label: 'Inactive' },
+  ];
+
+  if (!isOpen || !currentUser) return null;
 
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
@@ -154,10 +310,10 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
             )}
             <div>
               <h2 className="text-2xl font-bold text-gray-900">
-                {user.name || 'User Details'}
+                {currentUser.name || 'User Details'}
               </h2>
               <p className="text-sm text-gray-600 mt-1">
-                {user.email || user.username || 'N/A'} • {user.user_number || 'N/A'}
+                {currentUser.username || 'N/A'} • {currentUser.user_number || 'N/A'}
               </p>
             </div>
           </div>
@@ -184,24 +340,35 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
                 <button
                   onClick={() => {
                     setIsEditing(false);
+                    // Reset personal_phone as array
+                    const phoneArray = Array.isArray(currentUser.personal_phone) 
+                      ? currentUser.personal_phone 
+                      : (currentUser.personal_phone ? [currentUser.personal_phone] : []);
+                    
+                    // Reset department IDs
+                    const deptIds = currentUser.departments?.map(dept => dept.id) || [];
+                    
                     setFormData({
-                      name: user.name || '',
-                      username: user.username || '',
-                      email: user.email || '',
-                      user_number: user.user_number || '',
-                      title: user.title || '',
-                      address: user.address || '',
-                      work_location: user.work_location || '',
-                      personal_phone: Array.isArray(user.personal_phone) ? user.personal_phone.join(', ') : (user.personal_phone || ''),
-                      social_insurance: user.social_insurance || false,
-                      medical_insurance: user.medical_insurance || false,
-                      join_date: user.join_date || '',
-                      contract_date: user.contract_date || '',
-                      exit_date: user.exit_date || '',
-                      is_active: user.is_active !== false,
+                      name: currentUser.name || '',
+                      username: currentUser.username || '',
+                      user_number: currentUser.user_number || '',
+                      title: currentUser.title || '',
+                      address: currentUser.address || '',
+                      work_location: currentUser.work_location || '',
+                      personal_phone: phoneArray,
+                      social_insurance: currentUser.social_insurance || false,
+                      medical_insurance: currentUser.medical_insurance || false,
+                      join_date: currentUser.join_date || '',
+                      contract_date: currentUser.contract_date || '',
+                      exit_date: currentUser.exit_date || '',
+                      is_active: currentUser.is_active !== false,
                     });
+                    setSelectedDepartmentIds(deptIds);
                     setSelectedFiles([]);
                     setImagePreview(null);
+                    setShowJoinDatePicker(false);
+                    setShowContractDatePicker(false);
+                    setShowExitDatePicker(false);
                   }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors order-2"
                 >
@@ -247,7 +414,7 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
                   />
                 ) : (
                   <p className="text-sm text-gray-900 bg-white px-3 py-2 rounded-lg border border-gray-200">
-                    {user.name || 'N/A'}
+                    {currentUser.name || 'N/A'}
                   </p>
                 )}
               </div>
@@ -264,24 +431,7 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
                   />
                 ) : (
                   <p className="text-sm text-gray-900 bg-white px-3 py-2 rounded-lg border border-gray-200">
-                    {user.username || 'N/A'}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                {isEditing ? (
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                ) : (
-                  <p className="text-sm text-gray-900 bg-white px-3 py-2 rounded-lg border border-gray-200">
-                    {user.email || 'N/A'}
+                    {currentUser.username || 'N/A'}
                   </p>
                 )}
               </div>
@@ -298,7 +448,7 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
                   />
                 ) : (
                   <p className="text-sm text-gray-900 bg-white px-3 py-2 rounded-lg border border-gray-200">
-                    {user.user_number || 'N/A'}
+                    {currentUser.user_number || 'N/A'}
                   </p>
                 )}
               </div>
@@ -316,7 +466,7 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
                   />
                 ) : (
                   <p className="text-sm text-gray-900 bg-white px-3 py-2 rounded-lg border border-gray-200">
-                    {user.title || 'N/A'}
+                    {currentUser.title || 'N/A'}
                   </p>
                 )}
               </div>
@@ -324,22 +474,19 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                 {isEditing ? (
-                  <select
-                    name="is_active"
-                    value={formData.is_active}
-                    onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.value === 'true' }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="true">Active</option>
-                    <option value="false">Inactive</option>
-                  </select>
+                  <SimpleDropdown
+                    options={statusOptions}
+                    value={String(formData.is_active)}
+                    onChange={(value) => setFormData(prev => ({ ...prev, is_active: value === 'true' }))}
+                    placeholder="Select Status"
+                  />
                 ) : (
                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                    user.is_active !== false
+                    currentUser.is_active !== false
                       ? 'bg-green-100 text-green-800'
                       : 'bg-red-100 text-red-800'
                   }`}>
-                    {user.is_active !== false ? 'Active' : 'Inactive'}
+                    {currentUser.is_active !== false ? 'Active' : 'Inactive'}
                   </span>
                 )}
               </div>
@@ -363,7 +510,7 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
                   />
                 ) : (
                   <p className="text-sm text-gray-900 bg-white px-3 py-2 rounded-lg border border-gray-200">
-                    {user.address || 'N/A'}
+                    {currentUser.address || 'N/A'}
                   </p>
                 )}
               </div>
@@ -371,20 +518,15 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Work Location</label>
                 {isEditing ? (
-                  <select
-                    name="work_location"
-                    value={formData.work_location}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">Select Location</option>
-                    <option value="remote">Remote</option>
-                    <option value="office">Office</option>
-                    <option value="hybrid">Hybrid</option>
-                  </select>
+                  <SimpleDropdown
+                    options={workLocationOptions}
+                    value={formData.work_location || ''}
+                    onChange={(value) => setFormData(prev => ({ ...prev, work_location: value }))}
+                    placeholder="Select Location"
+                  />
                 ) : (
                   <p className="text-sm text-gray-900 bg-white px-3 py-2 rounded-lg border border-gray-200">
-                    {user.work_location || 'N/A'}
+                    {currentUser.work_location || 'N/A'}
                   </p>
                 )}
               </div>
@@ -392,84 +534,230 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Personal Phone</label>
                 {isEditing ? (
-                  <input
-                    type="text"
-                    name="personal_phone"
-                    value={Array.isArray(formData.personal_phone) ? formData.personal_phone.join(', ') : (formData.personal_phone || '')}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter phone numbers, comma-separated"
-                  />
+                  <div className="space-y-2">
+                    {(formData.personal_phone || []).map((phone, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={phone}
+                          onChange={(e) => handlePhoneChange(index, e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Enter phone number"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePhone(index)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={handleAddPhone}
+                      className="w-full px-3 py-2 border border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Phone Number</span>
+                    </button>
+                  </div>
                 ) : (
-                  <p className="text-sm text-gray-900 bg-white px-3 py-2 rounded-lg border border-gray-200">
-                    {Array.isArray(user.personal_phone) ? user.personal_phone.join(', ') : (user.personal_phone || 'N/A')}
-                  </p>
+                  <div className="space-y-1">
+                    {Array.isArray(currentUser.personal_phone) && currentUser.personal_phone.length > 0 ? (
+                      currentUser.personal_phone.map((phone, index) => (
+                        <p key={index} className="text-sm text-gray-900 bg-white px-3 py-2 rounded-lg border border-gray-200">
+                          {phone}
+                        </p>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-900 bg-white px-3 py-2 rounded-lg border border-gray-200">
+                        N/A
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
 
-              {/* Profile Image Upload */}
-              {isEditing && (
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Profile Image</label>
-                  <FileUpload
-                    onFileChange={handleFileChange}
-                    accept="image/*"
-                    multiple={false}
-                    label="Click to upload or drag and drop"
-                    helperText="SVG, PNG, JPG or GIF (MAX. 800×400px)"
-                    previewUrl={imagePreview}
-                    onRemove={handleRemoveImage}
-                  />
-                </div>
-              )}
-
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Departments</label>
+                {isEditing ? (
+                  <div className="space-y-2">
+                    {selectedDepartmentIds.map((deptId) => {
+                      const dept = departments.find(d => d.id === deptId);
+                      return dept ? (
+                        <div key={deptId} className="flex items-center justify-between px-3 py-2 bg-white border border-gray-300 rounded-lg">
+                          <span className="text-sm text-gray-900">{dept.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDepartment(deptId)}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : null;
+                    })}
+                    <SimpleDropdown
+                      options={[
+                        { value: '', label: 'Select Department' },
+                        ...departments
+                          .filter(dept => !selectedDepartmentIds.includes(dept.id))
+                          .map(dept => ({ value: dept.id, label: dept.name }))
+                      ]}
+                      value=""
+                      onChange={(value) => {
+                        if (value) handleAddDepartment(value);
+                      }}
+                      placeholder="Add Department"
+                      loading={departmentsLoading}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {currentUser.departments && currentUser.departments.length > 0 ? (
+                      currentUser.departments.map((dept) => (
+                        <p key={dept.id} className="text-sm text-gray-900 bg-white px-3 py-2 rounded-lg border border-gray-200">
+                          {dept.name}
+                        </p>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-900 bg-white px-3 py-2 rounded-lg border border-gray-200">
+                        N/A
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="relative" ref={joinDateRef}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Join Date</label>
                 {isEditing ? (
-                  <input
-                    type="date"
-                    name="join_date"
-                    value={formData.join_date}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="YYYY-MM-DD"
+                        value={formatDateForDisplay(formData.join_date)}
+                        onFocus={() => setShowJoinDatePicker(true)}
+                        readOnly
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+                      />
+                      <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                    </div>
+                    {showJoinDatePicker && joinDateRef.current && createPortal(
+                      <div 
+                        ref={joinCalendarRef}
+                        className="fixed z-[10002]" 
+                        style={{ 
+                          left: joinDateRef.current.getBoundingClientRect().left,
+                          bottom: window.innerHeight - joinDateRef.current.getBoundingClientRect().top + 4
+                        }}
+                      >
+                        <SimpleDatePicker
+                          value={formData.join_date}
+                          onChange={(date) => {
+                            handleDateChange('join_date', date);
+                            setShowJoinDatePicker(false);
+                          }}
+                          show={showJoinDatePicker}
+                          onClose={() => setShowJoinDatePicker(false)}
+                        />
+                      </div>,
+                      document.body
+                    )}
+                  </>
                 ) : (
                   <p className="text-sm text-gray-900 bg-white px-3 py-2 rounded-lg border border-gray-200">
-                    {user.join_date || 'N/A'}
+                    {formatDateForDisplay(currentUser.join_date) || 'N/A'}
                   </p>
                 )}
               </div>
 
-              <div>
+              <div className="relative" ref={contractDateRef}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Contract Date</label>
                 {isEditing ? (
-                  <input
-                    type="date"
-                    name="contract_date"
-                    value={formData.contract_date}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="YYYY-MM-DD"
+                        value={formatDateForDisplay(formData.contract_date)}
+                        onFocus={() => setShowContractDatePicker(true)}
+                        readOnly
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+                      />
+                      <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                    </div>
+                    {showContractDatePicker && contractDateRef.current && createPortal(
+                      <div 
+                        ref={contractCalendarRef}
+                        className="fixed z-[10002]" 
+                        style={{ 
+                          left: contractDateRef.current.getBoundingClientRect().left,
+                          bottom: window.innerHeight - contractDateRef.current.getBoundingClientRect().top + 4
+                        }}
+                      >
+                        <SimpleDatePicker
+                          value={formData.contract_date}
+                          onChange={(date) => {
+                            handleDateChange('contract_date', date);
+                            setShowContractDatePicker(false);
+                          }}
+                          show={showContractDatePicker}
+                          onClose={() => setShowContractDatePicker(false)}
+                        />
+                      </div>,
+                      document.body
+                    )}
+                  </>
                 ) : (
                   <p className="text-sm text-gray-900 bg-white px-3 py-2 rounded-lg border border-gray-200">
-                    {user.contract_date || 'N/A'}
+                    {formatDateForDisplay(currentUser.contract_date) || 'N/A'}
                   </p>
                 )}
               </div>
 
-              <div>
+              <div className="relative" ref={exitDateRef}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Exit Date</label>
                 {isEditing ? (
-                  <input
-                    type="date"
-                    name="exit_date"
-                    value={formData.exit_date}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="YYYY-MM-DD"
+                        value={formatDateForDisplay(formData.exit_date)}
+                        onFocus={() => setShowExitDatePicker(true)}
+                        readOnly
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+                      />
+                      <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                    </div>
+                    {showExitDatePicker && exitDateRef.current && createPortal(
+                      <div 
+                        ref={exitCalendarRef}
+                        className="fixed z-[10002]" 
+                        style={{ 
+                          left: exitDateRef.current.getBoundingClientRect().left,
+                          bottom: window.innerHeight - exitDateRef.current.getBoundingClientRect().top + 4
+                        }}
+                      >
+                        <SimpleDatePicker
+                          value={formData.exit_date}
+                          onChange={(date) => {
+                            handleDateChange('exit_date', date);
+                            setShowExitDatePicker(false);
+                          }}
+                          show={showExitDatePicker}
+                          onClose={() => setShowExitDatePicker(false)}
+                        />
+                      </div>,
+                      document.body
+                    )}
+                  </>
                 ) : (
                   <p className="text-sm text-gray-900 bg-white px-3 py-2 rounded-lg border border-gray-200">
-                    {user.exit_date || 'N/A'}
+                    {formatDateForDisplay(currentUser.exit_date) || 'N/A'}
                   </p>
                 )}
               </div>
@@ -498,6 +786,22 @@ export function UserDetailModal({ user, isOpen, onClose, onUpdate }) {
                   <label className="ml-2 text-sm text-gray-700">Medical Insurance</label>
                 </div>
               </div>
+
+              {/* Profile Image Upload - Moved to end */}
+              {isEditing && (
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Profile Image</label>
+                  <FileUpload
+                    onFileChange={handleFileChange}
+                    accept="image/*"
+                    multiple={false}
+                    label="Click to upload or drag and drop"
+                    helperText="SVG, PNG, JPG or GIF (MAX. 800×400px)"
+                    previewUrl={imagePreview}
+                    onRemove={handleRemoveImage}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>

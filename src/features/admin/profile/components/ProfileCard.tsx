@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Typography,
   Button,
@@ -40,8 +40,16 @@ export function ProfileCard({
   isActive,
   createdDate,
   updatedDate,
+  joinDate,
+  contractDate,
+  exitDate,
+  socialInsurance,
+  medicalInsurance,
+  departments,
+  userImageUrl,
   onEditClick,
 }) {
+  const [imageError, setImageError] = useState(false);
   return (
     <Card className="shadow-lg border border-gray-200 overflow-hidden">
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 sm:px-8 py-8">
@@ -49,14 +57,30 @@ export function ProfileCard({
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
           {/* Avatar */}
           <div className="relative group">
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white flex items-center justify-center shadow-xl ring-4 ring-white/50 transition-transform duration-150 group-hover:scale-105">
-              <span className="text-blue-600 text-3xl sm:text-4xl font-bold">
-                {getInitials(userName)}
-              </span>
-            </div>
-            {isActive && (
-              <div className="absolute bottom-0 right-0 sm:bottom-2 sm:right-2 w-6 h-6 bg-green-500 rounded-full border-4 border-white shadow-lg flex items-center justify-center">
-                <CheckCircleIcon className="w-3 h-3 text-white" />
+            {userImageUrl && !imageError ? (
+              <div className="relative">
+                <img
+                  src={userImageUrl}
+                  alt={userName}
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-white shadow-xl transition-transform duration-150 group-hover:scale-105"
+                  onError={() => setImageError(true)}
+                />
+                {isActive && (
+                  <div className="absolute bottom-0 right-0 sm:bottom-2 sm:right-2 w-6 h-6 bg-green-500 rounded-full border-4 border-white shadow-lg flex items-center justify-center">
+                    <CheckCircleIcon className="w-3 h-3 text-white" />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white flex items-center justify-center shadow-xl ring-4 ring-white/50 transition-transform duration-150 group-hover:scale-105">
+                <span className="text-blue-600 text-3xl sm:text-4xl font-bold">
+                  {getInitials(userName)}
+                </span>
+                {isActive && (
+                  <div className="absolute bottom-0 right-0 sm:bottom-2 sm:right-2 w-6 h-6 bg-green-500 rounded-full border-4 border-white shadow-lg flex items-center justify-center">
+                    <CheckCircleIcon className="w-3 h-3 text-white" />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -273,6 +297,111 @@ export function ProfileCard({
             )}
           </div>
         </div>
+
+        {/* Employment Information Section */}
+        {(joinDate || contractDate || exitDate || socialInsurance !== undefined || medicalInsurance !== undefined || (departments && departments.length > 0)) && (
+          <div className="mb-8">
+            <Typography variant="h6" className="text-gray-900 font-bold mb-6 flex items-center gap-2">
+              <BriefcaseIcon className="w-5 h-5 text-blue-600" />
+              Employment Information
+            </Typography>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Join Date */}
+              {joinDate && joinDate !== 'N/A' && (
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CalendarIcon className="w-4 h-4 text-gray-500" />
+                    <Typography variant="small" className="text-gray-600 font-semibold uppercase tracking-wide text-xs">
+                      Join Date
+                    </Typography>
+                  </div>
+                  <Typography variant="paragraph" className="text-gray-900 font-medium">
+                    {joinDate}
+                  </Typography>
+                </div>
+              )}
+
+              {/* Contract Date */}
+              {contractDate && contractDate !== 'N/A' && (
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CalendarIcon className="w-4 h-4 text-gray-500" />
+                    <Typography variant="small" className="text-gray-600 font-semibold uppercase tracking-wide text-xs">
+                      Contract Date
+                    </Typography>
+                  </div>
+                  <Typography variant="paragraph" className="text-gray-900 font-medium">
+                    {contractDate}
+                  </Typography>
+                </div>
+              )}
+
+              {/* Exit Date */}
+              {exitDate && exitDate !== 'N/A' && (
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CalendarIcon className="w-4 h-4 text-gray-500" />
+                    <Typography variant="small" className="text-gray-600 font-semibold uppercase tracking-wide text-xs">
+                      Exit Date
+                    </Typography>
+                  </div>
+                  <Typography variant="paragraph" className="text-gray-900 font-medium">
+                    {exitDate}
+                  </Typography>
+                </div>
+              )}
+
+              {/* Social Insurance */}
+              {socialInsurance !== undefined && (
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ShieldCheckIcon className="w-4 h-4 text-gray-500" />
+                    <Typography variant="small" className="text-gray-600 font-semibold uppercase tracking-wide text-xs">
+                      Social Insurance
+                    </Typography>
+                  </div>
+                  <Typography variant="paragraph" className={`font-medium ${socialInsurance ? 'text-green-600' : 'text-gray-600'}`}>
+                    {socialInsurance ? 'Yes' : 'No'}
+                  </Typography>
+                </div>
+              )}
+
+              {/* Medical Insurance */}
+              {medicalInsurance !== undefined && (
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ShieldCheckIcon className="w-4 h-4 text-gray-500" />
+                    <Typography variant="small" className="text-gray-600 font-semibold uppercase tracking-wide text-xs">
+                      Medical Insurance
+                    </Typography>
+                  </div>
+                  <Typography variant="paragraph" className={`font-medium ${medicalInsurance ? 'text-green-600' : 'text-gray-600'}`}>
+                    {medicalInsurance ? 'Yes' : 'No'}
+                  </Typography>
+                </div>
+              )}
+
+              {/* Departments */}
+              {departments && departments.length > 0 && (
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow duration-200 sm:col-span-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <BriefcaseIcon className="w-4 h-4 text-gray-500" />
+                    <Typography variant="small" className="text-gray-600 font-semibold uppercase tracking-wide text-xs">
+                      Departments
+                    </Typography>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {departments.map((dept) => (
+                      <span key={dept.id || dept} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                        {dept.name || dept}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Action Button */}
         <div className="flex justify-end pt-4 border-t border-gray-200">

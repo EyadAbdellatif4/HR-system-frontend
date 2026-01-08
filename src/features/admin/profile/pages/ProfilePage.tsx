@@ -5,6 +5,7 @@ import { ProfileModal } from '../components/ProfileModal';
 import { ProfileCard } from '../components/ProfileCard';
 import { ProfileQuickActions } from '../components/ProfileQuickActions';
 import { LoadingSpinner, ErrorState } from '@/common/components';
+import { getApiUrl } from '@/config/env';
 
 export function ProfilePage() {
   const {
@@ -65,6 +66,13 @@ export function ProfilePage() {
             isActive={profileDisplayData?.isActive}
             createdDate={profileDisplayData?.createdDate}
             updatedDate={profileDisplayData?.updatedDate}
+            joinDate={profileDisplayData?.joinDate}
+            contractDate={profileDisplayData?.contractDate}
+            exitDate={profileDisplayData?.exitDate}
+            socialInsurance={profileDisplayData?.socialInsurance}
+            medicalInsurance={profileDisplayData?.medicalInsurance}
+            departments={profileDisplayData?.departments}
+            userImageUrl={user?.attachments?.[0]?.path_URL ? `${getApiUrl()}/files/${user.attachments[0].path_URL}` : null}
             onEditClick={() => setIsModalOpen(true)}
           />
         </div>

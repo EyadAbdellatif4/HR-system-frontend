@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { X, Save, Loader2, User } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { X, Save, Loader2, User, Calendar } from 'lucide-react';
 import { SimpleDropdown } from '@/common/components/SimpleDropdown';
+import { SimpleDatePicker } from '@/common/components/SimpleDatePicker';
 import { FileUpload } from '@/common/components/FileUpload';
 
 /**
@@ -29,6 +31,39 @@ export function CreateUserModal({ isOpen, onClose, onCreate }) {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [imagePreview, setImagePreview] = useState(null);
+  
+  // Date picker states
+  const [showJoinDatePicker, setShowJoinDatePicker] = useState(false);
+  const [showContractDatePicker, setShowContractDatePicker] = useState(false);
+  const joinDateRef = useRef(null);
+  const contractDateRef = useRef(null);
+  const joinCalendarRef = useRef(null);
+  const contractCalendarRef = useRef(null);
+
+  // Close date pickers when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const target = event.target;
+      const isClickInJoinInput = joinDateRef.current?.contains(target);
+      const isClickInJoinCalendar = joinCalendarRef.current?.contains(target);
+      const isClickInContractInput = contractDateRef.current?.contains(target);
+      const isClickInContractCalendar = contractCalendarRef.current?.contains(target);
+
+      if (showJoinDatePicker && !isClickInJoinInput && !isClickInJoinCalendar) {
+        setShowJoinDatePicker(false);
+      }
+      if (showContractDatePicker && !isClickInContractInput && !isClickInContractCalendar) {
+        setShowContractDatePicker(false);
+      }
+    };
+
+    if (showJoinDatePicker || showContractDatePicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showJoinDatePicker, showContractDatePicker]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -53,6 +88,19 @@ export function CreateUserModal({ isOpen, onClose, onCreate }) {
   const handleRemoveImage = () => {
     setSelectedFiles([]);
     setImagePreview(null);
+  };
+
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleDateChange = (name, date) => {
+    setFormData(prev => ({ ...prev, [name]: date }));
   };
 
   const handleSave = async () => {
@@ -239,30 +287,80 @@ export function CreateUserModal({ isOpen, onClose, onCreate }) {
               />
             </div>
 
-            <div>
+            <div className="relative" ref={joinDateRef}>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Join Date
               </label>
-              <input
-                type="date"
-                name="join_date"
-                value={formData.join_date}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="YYYY-MM-DD"
+                  value={formatDateForDisplay(formData.join_date)}
+                  onFocus={() => setShowJoinDatePicker(true)}
+                  readOnly
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+                />
+                <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+              </div>
+              {showJoinDatePicker && joinDateRef.current && createPortal(
+                <div 
+                  ref={joinCalendarRef}
+                  className="fixed z-[10002] mt-1" 
+                  style={{ 
+                    left: joinDateRef.current.getBoundingClientRect().left,
+                    top: joinDateRef.current.getBoundingClientRect().bottom + 4
+                  }}
+                >
+                  <SimpleDatePicker
+                    value={formData.join_date}
+                    onChange={(date) => {
+                      handleDateChange('join_date', date);
+                      setShowJoinDatePicker(false);
+                    }}
+                    show={showJoinDatePicker}
+                    onClose={() => setShowJoinDatePicker(false)}
+                  />
+                </div>,
+                document.body
+              )}
             </div>
 
-            <div>
+            <div className="relative" ref={contractDateRef}>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Contract Date
               </label>
-              <input
-                type="date"
-                name="contract_date"
-                value={formData.contract_date}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="YYYY-MM-DD"
+                  value={formatDateForDisplay(formData.contract_date)}
+                  onFocus={() => setShowContractDatePicker(true)}
+                  readOnly
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+                />
+                <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+              </div>
+              {showContractDatePicker && contractDateRef.current && createPortal(
+                <div 
+                  ref={contractCalendarRef}
+                  className="fixed z-[10002] mt-1" 
+                  style={{ 
+                    left: contractDateRef.current.getBoundingClientRect().left,
+                    top: contractDateRef.current.getBoundingClientRect().bottom + 4
+                  }}
+                >
+                  <SimpleDatePicker
+                    value={formData.contract_date}
+                    onChange={(date) => {
+                      handleDateChange('contract_date', date);
+                      setShowContractDatePicker(false);
+                    }}
+                    show={showContractDatePicker}
+                    onClose={() => setShowContractDatePicker(false)}
+                  />
+                </div>,
+                document.body
+              )}
             </div>
 
             <div className="md:col-span-2 flex items-center space-x-6">

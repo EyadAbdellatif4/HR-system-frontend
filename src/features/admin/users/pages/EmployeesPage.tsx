@@ -84,13 +84,14 @@ export function EmployeesPage() {
   const handleUpdate = async (userId: string, updateData: UpdateUserRequest, files: File[] | null = null) => {
     try {
       // Use RTK Query mutation (handles both JSON and FormData)
-      await updateUser({ id: userId, data: updateData, files: files || undefined }).unwrap();
-      dispatch(closeModal('userDetail'));
+      const result = await updateUser({ id: userId, data: updateData, files: files || undefined }).unwrap();
       // Manually refetch to ensure UI updates immediately
       await refetch();
       if (window.showToast) {
         window.showToast('User updated successfully', 'success');
       }
+      // Return the updated user data so the modal can update its display
+      return result;
     } catch (error: any) {
       console.error('Error updating user:', error);
       const errorMessage = error?.data?.message || error?.message || 'Failed to update user. Please try again.';
@@ -102,6 +103,7 @@ export function EmployeesPage() {
         alert(formattedError);
       }
       // Don't close modal on error so user can retry
+      throw error; // Re-throw so modal knows update failed
     }
   };
 
