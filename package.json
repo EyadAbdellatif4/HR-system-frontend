@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node api.js && vite",
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "gcloud run deploy gift-voucher-dashboard --source . --region europe-west1 --platform managed --allow-unauthenticated --memory 256Mi --cpu 1 --max-instances 10 --timeout 60s --port 8080 --set-env-vars VITE_API_URL=https://gift-voucher-generator-1082379018873.europe-west1.run.app",
